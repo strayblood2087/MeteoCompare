@@ -23,13 +23,15 @@
         </header>
 
         <div class="max-w-xl mx-auto mb-16">
-            <form onsubmit="event.preventDefault(); getAllWeather();" class="flex gap-2 p-2 bg-white/5 rounded-2xl border border-white/20 shadow-2xl">
-                <input id="cityInput" type="text" placeholder="Entrez votre ville..." 
-                       class="flex-grow bg-transparent border-none focus:ring-0 px-6 py-4 outline-none text-white text-xl">
-                <button type="submit" id="searchBtn" class="bg-indigo-600 text-white px-10 py-4 rounded-xl hover:bg-indigo-500 font-black transition-all shadow-lg">
-                    COMPARER
-                </button>
-            </form>
+            <form onsubmit="event.preventDefault(); getAllWeather();" 
+      class="flex flex-col sm:flex-row gap-2 p-2 bg-white/5 rounded-2xl border border-white/20 shadow-2xl">
+    <input id="cityInput" type="text" placeholder="Entrez votre ville..." 
+           class="w-full sm:flex-grow bg-transparent border-none focus:ring-0 px-6 py-4 outline-none text-white text-xl">
+    <button type="submit" id="searchBtn" 
+            class="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 sm:px-10 sm:py-4 rounded-xl hover:bg-indigo-500 font-black transition-all shadow-lg">
+        COMPARER
+    </button>
+</form>
         </div>
 
         <div id="resultsArea" class="hidden">
@@ -161,4 +163,5 @@ async function fetchIndividualModel(id, lat, lon, modelName) {
 }
 </script>
 </body>
+
 </html>
