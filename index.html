@@ -3,165 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comparateur Météo</title>
+    <title>METEO COMPARE | Multi-Modèles</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .loading-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .card-pro { transition: all 0.3s ease; border: 1px solid rgba(0,0,0,0.05); }
-        .card-pro:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="bg-slate-950 min-h-screen font-sans text-slate-800">
 
     <div class="container mx-auto px-4 py-10">
-        <header class="text-center mb-10 text-white">
-            <h1 class="text-5xl font-black mb-4 tracking-tighter italic">METEO<span class="text-indigo-500">COMPARE</span></h1>
-            <p class="text-slate-400 max-w-2xl mx-auto">Comparateur multi-modèles : Arome, Arpege, ECMWF, GFS, ICON et GEM.</p>
+        <header id="mainHeader" class="text-center mb-10 text-white">
+            <h1 class="text-5xl font-black mb-4 tracking-tighter italic uppercase">
+                Meteo<span class="text-indigo-500">Compare</span>
+            </h1>
+            <p class="text-slate-400 italic">Comparateur multi-modèles haute précision.</p>
         </header>
 
-        <div class="max-w-xl mx-auto mb-16">
-            <form onsubmit="event.preventDefault(); getAllWeather();" 
-      class="flex flex-col sm:flex-row gap-2 p-2 bg-white/5 rounded-2xl border border-white/20 shadow-2xl">
-    <input id="cityInput" type="text" placeholder="Entrez votre ville..." 
-           class="w-full sm:flex-grow bg-transparent border-none focus:ring-0 px-6 py-4 outline-none text-white text-xl">
-    <button type="submit" id="searchBtn" 
-            class="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 sm:px-10 sm:py-4 rounded-xl hover:bg-indigo-500 font-black transition-all shadow-lg">
-        COMPARER
-    </button>
-</form>
-        </div>
+    <div id="searchSection" class="max-w-2xl mx-auto mb-16">
+        <form id="weatherForm" class="flex flex-col md:flex-row gap-3 p-2 bg-white/5 rounded-2xl border border-white/20 shadow-2xl backdrop-blur-md">
+            <div class="flex-grow flex items-center px-4">
+                <i class="fas fa-search text-slate-500 mr-3"></i>
+                <input id="cityInput" type="text" placeholder="Quelle ville cherchez-vous ?" 
+                        class="w-full bg-transparent border-none focus:ring-0 py-4 outline-none text-white text-xl placeholder:text-slate-600">
+            </div>
+            <button type="submit" id="searchBtn" 
+                class="bg-indigo-600 text-white px-8 py-4 rounded-xl hover:bg-indigo-500 font-black transition-all active:scale-95 md:w-auto w-full whitespace-nowrap shadow-lg shadow-indigo-500/20">
+            COMPARER LES MODÈLES
+            </button>
+        </form>
+    </div>
 
         <div id="resultsArea" class="hidden">
             <h2 id="displayCity" class="text-3xl font-bold text-white text-center mb-12 flex items-center justify-center gap-3"></h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                </div>
+            <div id="weatherGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div id="detailArea" class="hidden max-w-2xl mx-auto">
+            <button onclick="backToGrid()" class="mb-6 text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i> Retour au comparatif
+            </button>
+            <div id="detailContent"></div>
         </div>
     </div>
 
-<script>
-    const models = [
-        { id: 'icon', name: 'Allemagne (ICON)', sub: 'Open-Météo / Précision EU', model: 'icon_seamless', color: 'amber' },
-        { id: 'gfs', name: 'USA (GFS)', sub: 'Standard International', model: 'gfs_seamless', color: 'rose' },
-        { id: 'arome', name: 'Météo-France (AROME)', sub: 'Météo Agricole / MF Pro', model: 'meteofrance_arome', color: 'blue' },
-        { id: 'arpege', name: 'Météo-France (ARPEGE)', sub: 'Météociel / Global FR', model: 'meteofrance_arpege', color: 'cyan' },
-        { id: 'ecmwf', name: 'Europe (ECMWF)', sub: 'Meteoblue / Météo Radar', model: 'ecmwf_ifs04', color: 'emerald' },
-        { id: 'gem', name: 'Canada (GEM)', sub: 'Modèle Global CMC', model: 'gem_seamless', color: 'purple' }
-    ];
-
-    function getIcon(code) {
-        if (code <= 1) return 'fa-sun text-orange-400';
-        if (code <= 3) return 'fa-cloud-sun text-slate-400';
-        if (code >= 51 && code <= 67) return 'fa-cloud-showers-heavy text-blue-500';
-        if (code >= 95) return 'fa-bolt text-indigo-600';
-        return 'fa-cloud text-slate-500';
-    }
-
-    async function getAllWeather() {
-        const city = document.getElementById('cityInput').value;
-        if (!city) return;
-        const btn = document.getElementById('searchBtn');
-        btn.innerHTML = '<i class="fas fa-spinner loading-spin"></i>';
-        
-        try {
-            const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr&format=json`);
-            const geoData = await geoRes.json();
-            if (!geoData.results) throw new Error("Ville non trouvée");
-
-            const { latitude, longitude, name, country } = geoData.results[0];
-            document.getElementById('displayCity').innerHTML = `<i class="fas fa-location-dot text-indigo-500"></i> ${name}, ${country}`;
-            
-            const grid = document.querySelector('.grid');
-            grid.innerHTML = ''; 
-            document.getElementById('resultsArea').classList.remove('hidden');
-
-            models.forEach(m => {
-                grid.innerHTML += `
-                    <div class="glass p-6 rounded-3xl border-t-8 border-${m.color}-500 shadow-xl card-pro">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-black text-slate-900 leading-none mb-1 text-lg">${m.sub}</h3>
-                                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">${m.name}</p>
-                            </div>
-                        </div>
-                        <div id="data-${m.id}" class="text-center py-8">
-                            <i class="fas fa-circle-notch loading-spin text-slate-200 text-3xl"></i>
-                        </div>
-                    </div>
-                `;
-            });
-
-            // On lance les requêtes individuellement
-            models.forEach(m => fetchIndividualModel(m.id, latitude, longitude, m.model));
-
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            btn.innerHTML = 'COMPARER';
-        }
-    }
-
-async function fetchIndividualModel(id, lat, lon, modelName) {
-    const container = document.getElementById(`data-${id}`);
-    try {
-        let url;
-        if (modelName.includes('meteofrance') || modelName.includes('ecmwf')) {
-            url = `https://api.open-meteo.com/v1/meteofrance?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,weather_code&model=${modelName}&timezone=auto`;
-        } else {
-            url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,weather_code&models=${modelName}&timezone=auto`;
-        }
-        
-        const res = await fetch(url);
-        const data = await res.json();
-        if (!data || !data.hourly) throw new Error();
-
-        const h = data.hourly;
-        const temps = h.temperature_2m || h[`temperature_2m_${modelName}`];
-        const rains = h.precipitation_probability || h[`precipitation_probability_${modelName}`];
-        const codes = h.weather_code || h[`weather_code_${modelName}`];
-
-        // --- LOGIQUE POUR L'HEURE RÉELLE ---
-        // On trouve l'index de l'heure actuelle dans les données de l'API
-        const now = new Date();
-        const currentHour = now.getHours();
-        
-        // On cherche l'index correspondant à l'heure actuelle (ou la plus proche)
-        let startIndex = h.time.findIndex(t => new Date(t).getHours() >= currentHour);
-        if (startIndex === -1) startIndex = 0;
-
-        container.innerHTML = `
-            <div class="flex items-center justify-around mb-6">
-                <i class="fas ${getIcon(codes[startIndex])} text-6xl"></i>
-                <div class="text-5xl font-black text-slate-800">${temps[startIndex].toFixed(1)}°</div>
-            </div>
-            <div class="bg-slate-50 rounded-2xl p-3 mb-6 flex justify-around text-xs font-bold">
-                <span class="text-blue-500"><i class="fas fa-umbrella mr-1"></i> ${rains[startIndex] || 0}% pluie</span>
-                <span class="text-slate-400"><i class="fas fa-clock mr-1"></i> EN DIRECT</span>
-            </div>
-            <div class="space-y-2 border-t pt-4">
-                ${[1, 2, 3, 4, 5, 6].map(offset => {
-                    const i = startIndex + offset;
-                    if (!temps[i]) return '';
-                    // Extraction de l'heure au format 24h (ex: 14:00)
-                    const timeLabel = h.time[i].split('T')[1]; 
-                    return `
-                    <div class="flex justify-between items-center text-[11px] py-1">
-                        <span class="text-slate-500 font-bold">${timeLabel}</span>
-                        <i class="fas ${getIcon(codes[i])} text-slate-300 w-4"></i>
-                        <span class="font-black text-slate-700 w-10 text-right">${temps[i].toFixed(1)}°</span>
-                        <span class="text-blue-300 w-8 text-right">${rains[i] || 0}%</span>
-                    </div>`;
-                }).join('')}
-            </div>
-        `;
-    } catch (e) {
-        container.innerHTML = `<div class="py-10 text-rose-500 text-xs font-bold uppercase">Erreur de données</div>`;
-    }
-}
-</script>
+    <script src="script.js"></script>
 </body>
 
 </html>
