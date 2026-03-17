@@ -9,7 +9,6 @@ const models = [
 
 let currentCoords = { lat: 0, lon: 0 };
 
-// Gestion de la soumission du formulaire
 document.getElementById('weatherForm').addEventListener('submit', (e) => {
     e.preventDefault();
     getAllWeather();
@@ -24,14 +23,12 @@ function getIcon(code) {
 }
 
 function getRainValue(hourlyData, index, modelName) {
-    const probKeys = ['precipitation_probability', `precipitation_probability_${modelName}`];
-    const mmKeys = ['precipitation', `precipitation_${modelName}`];
-    
+    const probKeys = ['precipitation_probability', `precipitation_probability_${modelName}`, 'precipitation'];
     for (let key of probKeys) {
-        if (hourlyData[key] !== undefined && hourlyData[key] !== null) return hourlyData[key][index];
-    }
-    for (let key of mmKeys) {
-        if (hourlyData[key] !== undefined && hourlyData[key] !== null) return hourlyData[key][index] > 0 ? 100 : 0;
+        if (hourlyData[key] !== undefined && hourlyData[key] !== null) {
+            const val = hourlyData[key][index];
+            return (key === 'precipitation') ? (val > 0 ? 100 : 0) : val;
+        }
     }
     return 0;
 }
@@ -59,6 +56,7 @@ async function getAllWeather() {
         grid.innerHTML = ''; 
         const currentHour = new Date().getHours();
 
+        // Création des cartes vides (Skeleton)
         models.forEach(m => {
             const card = document.createElement('div');
             card.className = `glass p-6 rounded-3xl border-t-8 border-${m.color}-500 shadow-xl card-pro`;
@@ -71,8 +69,11 @@ async function getAllWeather() {
                 <div id="data-${m.id}" class="text-center py-8"><i class="fas fa-circle-notch loading-spin text-slate-200 text-3xl"></i></div>
             `;
             grid.appendChild(card);
-            fetchHomeData(m, latitude, longitude, currentHour);
         });
+
+        // PARALLÉLISATION : On lance tous les appels en même temps
+        await Promise.all(models.map(m => fetchHomeData(m, latitude, longitude, currentHour)));
+
     } catch (e) { alert(e.message); } finally { btn.disabled = false; btn.innerHTML = 'COMPARER'; }
 }
 
@@ -80,8 +81,7 @@ async function fetchHomeData(m, lat, lon, currentHour) {
     const container = document.getElementById(`data-${m.id}`);
     try {
         const isMF = m.model.includes('meteofrance') || m.model.includes('ecmwf');
-        const baseUrl = isMF ? 'https://api.open-meteo.com/v1/meteofrance' : 'https://api.open-meteo.com/v1/forecast';
-        const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,precipitation,weather_code&${isMF ? 'model' : 'models'}=${m.model}&timezone=auto`;
+        const url = `${isMF ? 'https://api.open-meteo.com/v1/meteofrance' : 'https://api.open-meteo.com/v1/forecast'}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,precipitation,weather_code&${isMF ? 'model' : 'models'}=${m.model}&timezone=auto`;
         
         const res = await fetch(url);
         const data = await res.json();
@@ -96,12 +96,11 @@ async function fetchHomeData(m, lat, lon, currentHour) {
         for(let offset = 1; offset <= 6; offset++) {
             const i = startIndex + offset;
             if (!temps[i]) continue;
-            const rainVal = getRainValue(h, i, m.model);
             forecastHTML += `<div class="flex justify-between items-center text-[11px] py-1 border-b border-slate-50 last:border-0">
                 <span class="text-slate-500 font-bold">${h.time[i].substring(11, 16)}</span>
                 <i class="fas ${getIcon(codes[i])} text-slate-300 w-4 text-center"></i>
                 <span class="font-black text-slate-700 w-10 text-right">${temps[i].toFixed(1)}°</span>
-                <span class="text-blue-500 font-bold w-12 text-right">${Math.round(rainVal)}%</span>
+                <span class="text-blue-500 font-bold w-12 text-right">${Math.round(getRainValue(h, i, m.model))}%</span>
             </div>`;
         }
 
@@ -117,7 +116,7 @@ async function fetchHomeData(m, lat, lon, currentHour) {
 }
 
 async function showDetails(m) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
     document.getElementById('resultsArea').classList.add('hidden');
     document.getElementById('searchSection').classList.add('hidden');
     document.getElementById('detailArea').classList.remove('hidden');
@@ -126,9 +125,7 @@ async function showDetails(m) {
 
     try {
         const isMF = m.model.includes('meteofrance') || m.model.includes('ecmwf');
-        const baseUrl = isMF ? 'https://api.open-meteo.com/v1/meteofrance' : 'https://api.open-meteo.com/v1/forecast';
-        const url = `${baseUrl}?latitude=${currentCoords.lat}&longitude=${currentCoords.lon}&hourly=temperature_2m,precipitation_probability,precipitation,weather_code&${isMF ? 'model' : 'models'}=${m.model}&timezone=auto&forecast_days=3`;
-        
+        const url = `${isMF ? 'https://api.open-meteo.com/v1/meteofrance' : 'https://api.open-meteo.com/v1/forecast'}?latitude=${currentCoords.lat}&longitude=${currentCoords.lon}&hourly=temperature_2m,precipitation_probability,precipitation,weather_code&${isMF ? 'model' : 'models'}=${m.model}&timezone=auto&forecast_days=3`;
         const res = await fetch(url);
         const data = await res.json();
         const h = data.hourly;
@@ -146,19 +143,18 @@ async function showDetails(m) {
         Object.keys(days).forEach((date, idx) => {
             const dayData = days[date];
             const dayLabel = new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-            const tempsArray = dayData.map(d => d.temp);
-
+            const temps = dayData.map(d => d.temp);
             html += `
                 <div class="glass rounded-3xl overflow-hidden shadow-lg border border-white/20">
                     <button onclick="toggleDay(${idx})" class="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors">
                         <div class="text-left">
-                            <p class="text-xs font-bold text-indigo-500 uppercase tracking-widest leading-none mb-1">Modèle : ${m.name}</p>
+                            <p class="text-xs font-bold text-indigo-500 uppercase tracking-widest leading-none mb-1">${m.name}</p>
                             <h3 class="text-xl font-black text-slate-800 capitalize">${dayLabel}</h3>
                         </div>
                         <div class="flex items-center gap-6">
                             <div class="text-right">
-                                <p class="text-2xl font-black text-slate-800">${Math.max(...tempsArray).toFixed(1)}°</p>
-                                <p class="text-xs font-bold text-slate-400">${Math.min(...tempsArray).toFixed(1)}°</p>
+                                <p class="text-2xl font-black text-slate-800">${Math.max(...temps).toFixed(1)}°</p>
+                                <p class="text-xs font-bold text-slate-400">${Math.min(...temps).toFixed(1)}°</p>
                             </div>
                             <i class="fas fa-chevron-down text-slate-300" id="icon-${idx}"></i>
                         </div>
@@ -175,11 +171,10 @@ async function showDetails(m) {
                             `).join('')}
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
         content.innerHTML = html + `</div>`;
-    } catch (e) { content.innerHTML = "Erreur de chargement."; }
+    } catch (e) { content.innerHTML = "Erreur."; }
 }
 
 window.toggleDay = function(idx) {
