@@ -1,8 +1,8 @@
 const models = [
-    { id: 'icon', name: 'ICON-EU', sub: 'Précision Allemande', model: 'icon_seamless', color: 'from-amber-400 to-orange-500' },
-    { id: 'gfs', name: 'GFS-Global', sub: 'Standard Américain', model: 'gfs_seamless', color: 'from-rose-400 to-red-600' },
-    { id: 'arome', name: 'AROME-HD', sub: 'Haute Définition FR', model: 'meteofrance_arome', color: 'from-blue-400 to-indigo-600' },
-    { id: 'arpege', name: 'ARPEGE', sub: 'Météo-France Global', model: 'meteofrance_arpege', color: 'from-cyan-400 to-blue-500' },
+    { id: 'icon', name: 'ICON-EU', sub: 'Open Météo', model: 'icon_seamless', color: 'from-amber-400 to-orange-500' },
+    { id: 'gfs', name: 'GFS-Global', sub: 'Standard International', model: 'gfs_seamless', color: 'from-rose-400 to-red-600' },
+    { id: 'arome', name: 'AROME-HD', sub: 'Météo-France AROME', model: 'meteofrance_arome', color: 'from-blue-400 to-indigo-600' },
+    { id: 'arpege', name: 'ARPEGE', sub: 'Météo-France ARPEGE', model: 'meteofrance_arpege', color: 'from-cyan-400 to-blue-500' },
     { id: 'ecmwf', name: 'ECMWF-IFS', sub: 'Référence Européenne', model: 'ecmwf_ifs04', color: 'from-emerald-400 to-teal-600' },
     { id: 'gem', name: 'GEM-Global', sub: 'Modèle Canadien', model: 'gem_seamless', color: 'from-purple-400 to-fuchsia-600' }
 ];
