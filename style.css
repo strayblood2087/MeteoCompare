@@ -1,52 +1,73 @@
+/* GPU Acceleration & Performance */
+* {
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
 @keyframes blob {
-    0% { transform: translate(0px, 0px) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    100% { transform: translate(0px, 0px) scale(1); }
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    33% { transform: translate3d(20px, -20px, 0) scale(1.05); }
+    100% { transform: translate3d(0, 0, 0) scale(1); }
 }
-.animate-blob { animation: blob 10s infinite alternate ease-in-out; }
-.animation-delay-2000 { animation-delay: 2s; }
 
+.animate-blob { 
+    animation: blob 12s infinite alternate ease-in-out; 
+    will-change: transform; /* Prépare le GPU */
+}
+
+/* Cartes Optimisées */
 .glass { 
-    background: rgba(15, 23, 42, 0.75); 
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 32px;
-    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
+    background: rgba(15, 23, 42, 0.8); 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 24px;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    /* Performance boost */
+    transform: translateZ(0); 
+    backface-visibility: hidden;
+    contain: content; 
 }
 
-.card-pro { transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1); cursor: pointer; }
-.card-pro:hover { background: rgba(30, 41, 59, 0.9); border-color: rgba(99, 102, 241, 0.4); transform: translateY(-8px); }
+.card-pro { 
+    transition: transform 0.3s cubic-bezier(0.2, 1, 0.3, 1), background 0.3s; 
+}
+
+/* Désactivation du flou sur Mobile pour fluidité maximale */
+@media (max-width: 768px) {
+    .glass { 
+        background: #0f172a; /* Couleur pleine (Slate-900) */
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .animate-blob { display: none; } /* On retire les blobs qui tournent derrière */
+    
+    .card-pro:active { 
+        transform: scale(0.98); /* Feedback tactile simple */
+    }
+}
 
 #favBtn.is-fav {
     color: #fbbf24;
-    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
-    transform: scale(1.2);
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.3));
 }
 
 .fav-badge {
-    background: rgba(255, 255, 255, 0.05);
+    background: #1e293b;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-weight: 800;
+    padding: 8px 16px;
+    border-radius: 100px;
     font-size: 13px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.fav-badge:hover { background: rgba(99, 102, 241, 0.2); border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
-
-#mobileHomeBtn.visible { translate: 0px 0px; }
-
-@media (max-width: 768px) {
-    .glass { background: rgba(15, 23, 42, 0.98); backdrop-filter: none; }
+    white-space: nowrap;
 }
 
-.loading-spin { animation: spin 0.8s linear infinite; }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-.day-collapse { transition: all 0.5s ease; overflow: hidden; max-height: 0; opacity: 0; }
-.day-collapse.open { max-height: 1500px; opacity: 1; padding-bottom: 20px; }
+.day-collapse { 
+    transition: max-height 0.4s ease-out, opacity 0.3s; 
+    overflow: hidden; 
+    max-height: 0; 
+    opacity: 0; 
+}
+.day-collapse.open { max-height: 1200px; opacity: 1; }
