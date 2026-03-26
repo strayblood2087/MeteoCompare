@@ -13,14 +13,14 @@
 }
 
 body {
-    background-color: #030712;
+    background-color: #030712; /* Le fond de base reste noir profond */
     color: white;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* --- ANIMATIONS DE FOND (Identique PC) --- */
+/* --- ANIMATIONS DE FOND (Blobs colorés comme sur PC) --- */
 @keyframes blob-float {
     0% { transform: translate3d(0, 0, 0) scale(1); }
     100% { transform: translate3d(20px, -20px, 0) scale(1.05); }
@@ -30,21 +30,10 @@ body {
     animation: blob-float 10s infinite alternate ease-in-out; 
     will-change: transform;
     pointer-events: none;
-    /* On force l'affichage sur mobile */
-    display: block !important; 
+    display: block !important; /* Force l'affichage même sur mobile */
 }
 
-/* --- ANIMATIONS D'ENTRÉE --- */
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translate3d(0, 20px, 0); }
-    to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-.reveal-card {
-    animation: fadeInUp 0.6s cubic-bezier(0.2, 1, 0.3, 1) both;
-}
-
-/* --- STYLE GLASSMORPHISM (Identique PC) --- */
+/* --- STYLE GLASSMORPHISM --- */
 .glass { 
     background: var(--glass-bg); 
     border: 1px solid var(--glass-border);
@@ -53,18 +42,35 @@ body {
     border-radius: 28px;
 }
 
-.card-pro { 
-    transition: all 0.3s cubic-bezier(0.2, 1, 0.3, 1);
-    cursor: pointer;
+/* --- AJUSTEMENTS MOBILE (Uniquement pour le bouton et le texte) --- */
+@media (max-width: 768px) {
+    /* On empile le formulaire pour que le bouton ne dépasse pas */
+    #weatherForm {
+        flex-direction: column;
+        padding: 8px;
+    }
+
+    #searchBtn {
+        width: 100%;
+        margin-top: 10px;
+        position: static !important; /* On annule l'absolute du PC */
+        height: 54px;
+        border-radius: 18px !important;
+    }
+
+    /* On garde les blobs bien visibles pour éviter le fond noir vide */
+    .animate-blob {
+        opacity: 0.7; 
+    }
+
+    /* On réduit un peu le titre pour que ça tienne sur une ligne */
+    h1 { font-size: 2.2rem !important; }
 }
 
-.card-pro:hover {
-    background: rgba(30, 41, 59, 0.9);
-    transform: translate3d(0, -6px, 0);
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
-}
+/* --- RESTE DU CODE (Tes styles originaux) --- */
+.card-pro { transition: all 0.3s ease; cursor: pointer; }
+.card-pro:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.9); }
 
-/* --- FAVORIS (Sans croix) --- */
 .fav-badge {
     background: rgba(30, 41, 59, 0.6);
     border: 1px solid var(--glass-border);
@@ -73,52 +79,10 @@ body {
     font-size: 13px;
     font-weight: 800;
     cursor: pointer;
-    transition: all 0.2s ease;
     backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
 }
 
-.fav-badge:hover {
-    background: var(--indigo-primary);
-    transform: translateY(-2px);
-}
-
-/* --- RESPONSIVE MOBILE (Uniquement les ajustements de structure) --- */
-@media (max-width: 768px) {
-    /* On empile l'input et le bouton pour éviter le décalage */
-    #weatherForm {
-        flex-direction: column;
-        padding: 8px;
-    }
-
-    #cityInput {
-        width: 100%;
-        font-size: 16px !important; /* Évite le zoom auto iOS */
-    }
-
-    #searchBtn {
-        width: 100%;
-        margin-top: 8px;
-        position: static !important; /* Annule l'absolute du PC */
-        height: 54px;
-        border-radius: 18px !important;
-    }
-
-    /* On garde les couleurs de fond (Blobs) */
-    .animate-blob {
-        opacity: 0.6; /* Un peu plus discret pour la lisibilité mobile */
-    }
-
-    /* On réduit un peu la taille du titre */
-    h1 { font-size: 2.2rem !important; }
-
-    #mobileHomeBtn.visible { 
-        transform: translate3d(0, 0, 0) !important; 
-    }
-}
-
-/* --- AUTRES STYLES --- */
-#favBtn.is-fav { color: #fbbf24; filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4)); }
+#favBtn.is-fav { color: #fbbf24; }
 .day-collapse { transition: max-height 0.5s ease, opacity 0.3s; overflow: hidden; max-height: 0; opacity: 0; }
 .day-collapse.open { max-height: 2000px; opacity: 1; }
 .live-indicator { border-left: 4px solid var(--indigo-primary); background: linear-gradient(90deg, rgba(79, 70, 229, 0.1) 0%, transparent 100%); }
