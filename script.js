@@ -33,7 +33,7 @@ function getRainValue(h, i, mName) {
     return 0;
 }
 
-// --- FAVORIS ---
+// --- FAVORIS (SANS LA CROIX) ---
 function renderFavorites() {
     const container = document.getElementById('favoritesSection');
     const list = document.getElementById('favoritesList');
@@ -66,7 +66,6 @@ function searchFavorite(city) {
     getAllWeather();
 }
 
-// --- LOGIQUE PRINCIPALE ---
 async function getAllWeather() {
     const city = document.getElementById('cityInput').value.trim();
     if (!city) return;
@@ -84,7 +83,8 @@ async function getAllWeather() {
         document.getElementById('displayCity').innerText = name;
         document.getElementById('resultsArea').classList.remove('hidden');
         document.getElementById('detailArea').classList.add('hidden');
-        document.getElementById('searchSection').classList.add('hidden'); // Optionnel: cache la recherche quand on a les résultats
+        
+        // LA BARRE DE RECHERCHE RESTE AFFICHEE ICI (searchSection n'est plus cachée)
         
         const isFav = favorites.some(f => f.toLowerCase() === name.toLowerCase());
         document.getElementById('favBtn').classList.toggle('is-fav', isFav);
@@ -230,23 +230,18 @@ window.toggleDay = function(idx) {
     if (!isOpen) { el.classList.add('open'); icon.style.transform = 'rotate(180deg)'; }
 };
 
-// --- NAVIGATION MISE À JOUR ---
 window.backToHome = function() {
-    // 1. On vide la zone de recherche
-    document.getElementById('cityInput').value = "";
-    
-    // 2. Gestion de l'affichage
+    document.getElementById('cityInput').value = ""; // RESET INPUT
     document.getElementById('resultsArea').classList.add('hidden');
     document.getElementById('detailArea').classList.add('hidden');
     document.getElementById('searchSection').classList.remove('hidden');
     document.getElementById('mobileHomeBtn').classList.remove('visible');
-    
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 window.backToGrid = function() {
     document.getElementById('detailArea').classList.add('hidden');
     document.getElementById('resultsArea').classList.remove('hidden');
-    document.getElementById('searchSection').classList.add('hidden');
+    document.getElementById('searchSection').classList.remove('hidden'); // BARRE DE RECHERCHE VISIBLE
     document.getElementById('mobileHomeBtn').classList.remove('visible');
 };
