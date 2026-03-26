@@ -1,36 +1,85 @@
 const models = [
-    { id: 'icon', name: 'Allemagne (ICON)', sub: 'Open-Météo / Précision EU', model: 'icon_seamless', color: 'amber' },
-    { id: 'gfs', name: 'USA (GFS)', sub: 'Standard International', model: 'gfs_seamless', color: 'rose' },
-    { id: 'arome', name: 'Météo-France (AROME)', sub: 'Météo Agricole / MF Pro', model: 'meteofrance_arome', color: 'blue' },
-    { id: 'arpege', name: 'Météo-France (ARPEGE)', sub: 'Météociel / Global FR', model: 'meteofrance_arpege', color: 'cyan' },
-    { id: 'ecmwf', name: 'Europe (ECMWF)', sub: 'Meteoblue / Météo Radar', model: 'ecmwf_ifs04', color: 'emerald' },
-    { id: 'gem', name: 'Canada (GEM)', sub: 'Modèle Global CMC', model: 'gem_seamless', color: 'purple' }
+    { id: 'icon', name: 'ICON-EU', sub: 'Open Météo', model: 'icon_seamless', color: 'from-amber-400 to-orange-500' },
+    { id: 'gfs', name: 'GFS-Global', sub: 'Standard International', model: 'gfs_seamless', color: 'from-rose-400 to-red-600' },
+    { id: 'arome', name: 'AROME-HD', sub: 'Météo-France AROME', model: 'meteofrance_arome', color: 'from-blue-400 to-indigo-600' },
+    { id: 'arpege', name: 'ARPEGE', sub: 'Météo-France ARPEGE', model: 'meteofrance_arpege', color: 'from-cyan-400 to-blue-500' },
+    { id: 'ecmwf', name: 'ECMWF-IFS', sub: 'Référence Européenne', model: 'ecmwf_ifs04', color: 'from-emerald-400 to-teal-600' },
+    { id: 'gem', name: 'GEM-Global', sub: 'Modèle Canadien', model: 'gem_seamless', color: 'from-purple-400 to-fuchsia-600' }
 ];
 
+let favorites = JSON.parse(localStorage.getItem('meteoFavs')) || [];
 let currentCoords = { lat: 0, lon: 0 };
 
-document.getElementById('weatherForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    getAllWeather();
-});
+document.addEventListener('DOMContentLoaded', renderFavorites);
+document.getElementById('weatherForm').addEventListener('submit', e => { e.preventDefault(); getAllWeather(); });
 
 function getIcon(code) {
-    if (code <= 1) return 'fa-sun text-orange-400';
-    if (code <= 3) return 'fa-cloud-sun text-slate-400';
-    if (code >= 51 && code <= 67) return 'fa-cloud-showers-heavy text-blue-500';
-    if (code >= 95) return 'fa-bolt text-indigo-600';
+    if (code <= 1) return 'fa-sun text-yellow-400';
+    if (code <= 3) return 'fa-cloud-sun text-indigo-300';
+    if (code >= 51 && code <= 67) return 'fa-cloud-showers-heavy text-blue-400';
+    if (code >= 95) return 'fa-bolt-lightning text-purple-400';
     return 'fa-cloud text-slate-500';
 }
 
-function getRainValue(hourlyData, index, modelName) {
-    const probKeys = ['precipitation_probability', `precipitation_probability_${modelName}`, 'precipitation'];
-    for (let key of probKeys) {
-        if (hourlyData[key] !== undefined && hourlyData[key] !== null) {
-            const val = hourlyData[key][index];
-            return (key === 'precipitation') ? (val > 0 ? 100 : 0) : val;
-        }
+function getRainValue(h, i, mName) {
+    const keys = ['precipitation_probability', `precipitation_probability_${mName}`, 'precipitation'];
+    for (let k of keys) {
+        if (h[k] !== undefined && h[k] !== null) return k === 'precipitation' ? (h[k][i] > 0 ? 100 : 0) : h[k][i];
     }
     return 0;
+}
+
+// --- GESTION DES FAVORIS ---
+function renderFavorites() {
+    const container = document.getElementById('favoritesSection');
+    const list = document.getElementById('favoritesList');
+    if (favorites.length === 0) { container.classList.add('hidden'); return; }
+    container.classList.remove('hidden');
+    list.innerHTML = favorites.map(city => `
+        <div class="fav-badge text-white group" onclick="searchFavorite('${city}')">
+            <span>${city}</span>
+            <i class="fas fa-times text-[10px] text-slate-500 hover:text-red-400 p-1" onclick="event.stopPropagation(); removeFavorite('${city}')"></i>
+        </div>
+    `).join('');
+}
+
+function toggleFavorite() {
+    const cityName = document.getElementById('displayCity').innerText.replace('', '').trim();
+    const btn = document.getElementById('favBtn');
+    if (favorites.includes(cityName)) {
+        favorites = favorites.filter(f => f !== cityName);
+        btn.classList.remove('is-fav');
+    } else {
+        favorites.push(cityName);
+        btn.classList.add('is-fav');
+    }
+    localStorage.setItem('meteoFavs', JSON.stringify(favorites));
+    renderFavorites();
+}
+
+function removeFavorite(city) {
+    favorites = favorites.filter(f => f !== city);
+    localStorage.setItem('meteoFavs', JSON.stringify(favorites));
+    renderFavorites();
+    if (document.getElementById('displayCity').innerText.trim() === city) {
+        document.getElementById('favBtn').classList.remove('is-fav');
+    }
+}
+
+function searchFavorite(city) {
+    document.getElementById('cityInput').value = city;
+    getAllWeather();
+}
+
+// --- LOGIQUE PRINCIPALE ---
+window.backToHome = function() {
+    document.getElementById('cityInput').value = '';
+    document.getElementById('resultsArea').classList.add('hidden');
+    document.getElementById('detailArea').classList.add('hidden');
+    document.getElementById('searchSection').classList.remove('hidden');
+    document.getElementById('mobileHomeBtn').classList.remove('visible');
+    renderFavorites();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function getAllWeather() {
@@ -38,43 +87,49 @@ async function getAllWeather() {
     if (!city) return;
     const btn = document.getElementById('searchBtn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner loading-spin"></i>';
+    btn.innerHTML = '<i class="fas fa-circle-notch loading-spin"></i>';
     
     try {
         const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr&format=json`);
         const geoData = await geoRes.json();
-        if (!geoData.results) throw new Error("Ville non trouvée");
+        if (!geoData.results) throw new Error("Oups, ville inconnue...");
         
-        const { latitude, longitude, name, country } = geoData.results[0];
+        const { latitude, longitude, name } = geoData.results[0];
         currentCoords = { lat: latitude, lon: longitude };
         
-        document.getElementById('displayCity').innerHTML = `<i class="fas fa-location-dot text-indigo-500"></i> ${name}, ${country}`;
+        document.getElementById('displayCity').innerText = name;
         document.getElementById('resultsArea').classList.remove('hidden');
         document.getElementById('detailArea').classList.add('hidden');
+        document.getElementById('mobileHomeBtn').classList.remove('visible');
         
+        // Check if city is already a favorite
+        const favBtn = document.getElementById('favBtn');
+        favorites.includes(name) ? favBtn.classList.add('is-fav') : favBtn.classList.remove('is-fav');
+
         const grid = document.getElementById('weatherGrid');
         grid.innerHTML = ''; 
         const currentHour = new Date().getHours();
 
-        // Création des cartes vides (Skeleton)
         models.forEach(m => {
             const card = document.createElement('div');
-            card.className = `glass p-6 rounded-3xl border-t-8 border-${m.color}-500 shadow-xl card-pro`;
+            card.className = `glass p-8 card-pro`;
             card.onclick = () => showDetails(m);
             card.innerHTML = `
-                <div class="flex justify-between items-start mb-4">
-                    <div><h3 class="font-black text-slate-900 text-lg leading-none mb-1">${m.sub}</h3><p class="text-[10px] text-slate-400 uppercase font-bold">${m.name}</p></div>
-                    <i class="fas fa-plus-circle text-slate-300"></i>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1">${m.name}</p>
+                        <h3 class="text-xl font-bold text-white tracking-tight">${m.sub}</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${m.color} flex items-center justify-center shadow-lg"><i class="fas fa-plus text-[10px] text-white"></i></div>
                 </div>
-                <div id="data-${m.id}" class="text-center py-8"><i class="fas fa-circle-notch loading-spin text-slate-200 text-3xl"></i></div>
+                <div id="data-${m.id}"><div class="h-24 flex items-center justify-center"><i class="fas fa-circle-notch loading-spin text-slate-700 text-2xl"></i></div></div>
             `;
             grid.appendChild(card);
         });
 
-        // PARALLÉLISATION : On lance tous les appels en même temps
         await Promise.all(models.map(m => fetchHomeData(m, latitude, longitude, currentHour)));
 
-    } catch (e) { alert(e.message); } finally { btn.disabled = false; btn.innerHTML = 'COMPARER'; }
+    } catch (e) { alert(e.message); } finally { btn.disabled = false; btn.innerHTML = 'ANALYSER'; }
 }
 
 async function fetchHomeData(m, lat, lon, currentHour) {
@@ -82,37 +137,34 @@ async function fetchHomeData(m, lat, lon, currentHour) {
     try {
         const isMF = m.model.includes('meteofrance') || m.model.includes('ecmwf');
         const url = `${isMF ? 'https://api.open-meteo.com/v1/meteofrance' : 'https://api.open-meteo.com/v1/forecast'}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,precipitation,weather_code&${isMF ? 'model' : 'models'}=${m.model}&timezone=auto`;
-        
         const res = await fetch(url);
         const data = await res.json();
         const h = data.hourly;
         const temps = h.temperature_2m || h[`temperature_2m_${m.model}`];
         const codes = h.weather_code || h[`weather_code_${m.model}`];
+        let start = h.time.findIndex(t => parseInt(t.substring(11, 13)) >= currentHour);
+        if (start === -1) start = 0;
 
-        let startIndex = h.time.findIndex(t => parseInt(t.substring(11, 13)) >= currentHour);
-        if (startIndex === -1) startIndex = 0;
-
-        let forecastHTML = '';
-        for(let offset = 1; offset <= 6; offset++) {
-            const i = startIndex + offset;
+        let list = '';
+        for(let offset = 2; offset <= 8; offset += 2) {
+            const i = start + offset;
             if (!temps[i]) continue;
-            forecastHTML += `<div class="flex justify-between items-center text-[11px] py-1 border-b border-slate-50 last:border-0">
-                <span class="text-slate-500 font-bold">${h.time[i].substring(11, 16)}</span>
-                <i class="fas ${getIcon(codes[i])} text-slate-300 w-4 text-center"></i>
-                <span class="font-black text-slate-700 w-10 text-right">${temps[i].toFixed(1)}°</span>
-                <span class="text-blue-500 font-bold w-12 text-right">${Math.round(getRainValue(h, i, m.model))}%</span>
-            </div>`;
+            list += `
+                <div class="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
+                    <span class="text-[11px] font-bold text-indigo-200/50 uppercase">${h.time[i].substring(11, 16)}</span>
+                    <i class="fas ${getIcon(codes[i])} text-sm"></i>
+                    <span class="text-sm font-black text-white w-10 text-right">${Math.round(temps[i])}°</span>
+                    <span class="text-cyan-400 font-bold text-[10px] w-12 text-right">${Math.round(getRainValue(h, i, m.model))}%</span>
+                </div>`;
         }
-
-        container.classList.remove('text-center', 'py-8');
         container.innerHTML = `
-            <div class="flex items-center justify-around mb-4">
-                <i class="fas ${getIcon(codes[startIndex])} text-5xl"></i>
-                <div class="text-4xl font-black text-slate-800">${temps[startIndex].toFixed(1)}°</div>
+            <div class="flex items-center gap-6 mb-6">
+                <i class="fas ${getIcon(codes[start])} text-5xl drop-shadow-lg"></i>
+                <div class="text-5xl font-black text-white tracking-tighter">${Math.round(temps[start])}°</div>
             </div>
-            <div class="space-y-1 border-t pt-2">${forecastHTML}</div>
+            <div class="space-y-0">${list}</div>
         `;
-    } catch (e) { container.innerHTML = "Indisponible"; }
+    } catch (e) { container.innerHTML = "<p class='text-slate-600 text-xs text-center'>Erreur</p>"; }
 }
 
 async function showDetails(m) {
@@ -120,8 +172,9 @@ async function showDetails(m) {
     document.getElementById('resultsArea').classList.add('hidden');
     document.getElementById('searchSection').classList.add('hidden');
     document.getElementById('detailArea').classList.remove('hidden');
+    document.getElementById('mobileHomeBtn').classList.add('visible');
     const content = document.getElementById('detailContent');
-    content.innerHTML = `<div class="text-center py-20 text-white"><i class="fas fa-circle-notch loading-spin text-5xl"></i></div>`;
+    content.innerHTML = `<div class="flex justify-center py-40"><i class="fas fa-circle-notch loading-spin text-4xl text-indigo-500"></i></div>`;
 
     try {
         const isMF = m.model.includes('meteofrance') || m.model.includes('ecmwf');
@@ -131,7 +184,6 @@ async function showDetails(m) {
         const h = data.hourly;
         const t = h.temperature_2m || h[`temperature_2m_${m.model}`];
         const c = h.weather_code || h[`weather_code_${m.model}`];
-
         const days = {};
         h.time.forEach((time, i) => {
             const date = time.substring(0, 10);
@@ -139,38 +191,33 @@ async function showDetails(m) {
             days[date].push({ time: time.substring(11, 16), temp: t[i], rain: getRainValue(h, i, m.model), code: c[i] });
         });
 
-        let html = `<div class="space-y-4">`;
+        let html = `<div class="space-y-6">`;
         Object.keys(days).forEach((date, idx) => {
             const dayData = days[date];
-            const dayLabel = new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-            const temps = dayData.map(d => d.temp);
+            const label = new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            const tempsArr = dayData.map(d => d.temp);
             html += `
-                <div class="glass rounded-3xl overflow-hidden shadow-lg border border-white/20">
-                    <button onclick="toggleDay(${idx})" class="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors">
+                <div class="glass p-2">
+                    <button onclick="toggleDay(${idx})" class="w-full flex items-center justify-between p-8 hover:bg-white/[0.03] rounded-[28px] transition-all">
                         <div class="text-left">
-                            <p class="text-xs font-bold text-indigo-500 uppercase tracking-widest leading-none mb-1">${m.name}</p>
-                            <h3 class="text-xl font-black text-slate-800 capitalize">${dayLabel}</h3>
+                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-2">${m.name}</p>
+                            <h3 class="text-2xl font-black text-white italic tracking-tight">${label}</h3>
                         </div>
-                        <div class="flex items-center gap-6">
-                            <div class="text-right">
-                                <p class="text-2xl font-black text-slate-800">${Math.max(...temps).toFixed(1)}°</p>
-                                <p class="text-xs font-bold text-slate-400">${Math.min(...temps).toFixed(1)}°</p>
-                            </div>
-                            <i class="fas fa-chevron-down text-slate-300" id="icon-${idx}"></i>
+                        <div class="flex items-center gap-8">
+                            <div class="text-right"><p class="text-3xl font-black text-white">${Math.round(Math.max(...tempsArr))}°</p></div>
+                            <i class="fas fa-chevron-down text-indigo-500 transition-transform duration-500" id="icon-${idx}"></i>
                         </div>
                     </button>
-                    <div id="day-${idx}" class="day-collapse bg-slate-50/50">
-                        <div class="p-6 grid grid-cols-1 gap-2 border-t border-slate-100">
-                            ${dayData.filter((_, i) => i % 2 === 0).map(d => `
-                                <div class="flex items-center justify-between py-2 border-b border-white last:border-0">
-                                    <span class="font-bold text-slate-600 w-16">${d.time}</span>
-                                    <i class="fas ${getIcon(d.code)} text-xl text-slate-400"></i>
-                                    <span class="font-black text-slate-800 w-12 text-right">${d.temp.toFixed(1)}°</span>
-                                    <span class="text-blue-500 font-bold w-12 text-right">${Math.round(d.rain)}%</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
+                    <div id="day-${idx}" class="day-collapse"><div class="px-8 pt-4 grid grid-cols-1 md:grid-cols-2 gap-x-12 border-t border-white/5 mx-4">
+                        ${dayData.filter((_, i) => i % 2 === 0).map(d => `
+                            <div class="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+                                <span class="text-xs font-bold text-slate-500 w-12">${d.time}</span>
+                                <i class="fas ${getIcon(d.code)} text-lg"></i>
+                                <span class="text-lg font-black text-white w-12 text-right">${Math.round(d.temp)}°</span>
+                                <span class="text-cyan-400 font-black text-[10px] w-12 text-right">${Math.round(d.rain)}%</span>
+                            </div>
+                        `).join('')}
+                    </div></div>
                 </div>`;
         });
         content.innerHTML = html + `</div>`;
@@ -190,4 +237,6 @@ window.backToGrid = function() {
     document.getElementById('detailArea').classList.add('hidden');
     document.getElementById('resultsArea').classList.remove('hidden');
     document.getElementById('searchSection').classList.remove('hidden');
+    document.getElementById('mobileHomeBtn').classList.remove('visible');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 };

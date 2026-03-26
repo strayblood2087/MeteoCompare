@@ -1,45 +1,58 @@
-/* Accélération matérielle et fluidité */
+@keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    100% { transform: translate(0px, 0px) scale(1); }
+}
+.animate-blob { animation: blob 10s infinite alternate ease-in-out; }
+.animation-delay-2000 { animation-delay: 2s; }
+
 .glass { 
-    background: rgba(255, 255, 255, 0.98); 
-    transform: translateZ(0); /* Force le GPU */
-    backface-visibility: hidden;
+    background: rgba(15, 23, 42, 0.75); 
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 32px;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
 }
 
-.card-pro { 
-    transition: transform 0.2s ease-out, border-color 0.2s;
-    border: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    contain: layout paint; /* Optimisation majeure du scroll */
+.card-pro { transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1); cursor: pointer; }
+.card-pro:hover { background: rgba(30, 41, 59, 0.9); border-color: rgba(99, 102, 241, 0.4); transform: translateY(-8px); }
+
+/* Étoile Favori */
+#favBtn.is-fav {
+    color: #fbbf24;
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+    transform: scale(1.2);
+}
+
+/* Badges Favoris Accueil */
+.fav-badge {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 13px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.fav-badge:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-2px);
 }
 
-.card-pro:hover { 
-    transform: translateY(-4px); 
-    border-color: #6366f1;
-}
+#mobileHomeBtn.visible { translate: 0px 0px; }
 
-/* Optimisation Mobile : suppression du flou si scroll saccadé */
 @media (max-width: 768px) {
-    .glass {
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        background: #ffffff;
-    }
-}
-
-/* Barre de recherche active */
-#weatherForm:focus-within {
-    border-color: rgba(99, 102, 241, 0.6);
-    background: rgba(255, 255, 255, 0.08);
+    .glass { background: rgba(15, 23, 42, 0.98); backdrop-filter: none; }
 }
 
 .loading-spin { animation: spin 0.8s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-/* Accordéons fluides */
-.day-collapse { 
-    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden; 
-    max-height: 0;
-}
-.day-collapse.open { max-height: 1500px; }
+.day-collapse { transition: all 0.5s ease; overflow: hidden; max-height: 0; opacity: 0; }
+.day-collapse.open { max-height: 1500px; opacity: 1; padding-bottom: 20px; }

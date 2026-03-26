@@ -3,46 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>METEO COMPARE | Multi-Modèles</title>
+    <title>METEO COMPARE | Expert Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-slate-950 min-h-screen font-sans text-slate-800">
+<body class="bg-[#030712] min-h-screen font-sans text-white overflow-x-hidden">
 
-    <div class="container mx-auto px-4 py-10">
-        <header class="text-center mb-10 text-white">
-            <h1 class="text-5xl font-black mb-4 tracking-tighter italic uppercase">
-                Meteo<span class="text-indigo-500">Compare</span>
-            </h1>
-            <p class="text-slate-400 italic">Comparateur haute performance.</p>
+    <div class="fixed top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-600/10 blur-[120px] rounded-full animate-blob"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-600/10 blur-[120px] rounded-full animate-blob animation-delay-2000"></div>
+
+    <div class="relative z-10 container mx-auto px-4 py-12">
+        <header class="text-center mb-12">
+            <a href="#" onclick="backToHome(); return false;" class="inline-block group">
+                <h1 class="text-5xl md:text-7xl font-black mb-4 tracking-tighter uppercase italic transition-transform group-hover:scale-105">
+                    <span class="text-white">METEO</span><span class="text-indigo-500">COMPARE</span>
+                </h1>
+                <div class="h-1 w-24 bg-indigo-500 mx-auto rounded-full mb-6 group-hover:w-32 transition-all"></div>
+            </a>
         </header>
 
-        <div id="searchSection" class="max-w-2xl mx-auto mb-16">
-            <form id="weatherForm" class="flex flex-col md:flex-row gap-3 p-2 bg-white/5 rounded-2xl border border-white/20 shadow-2xl backdrop-blur-md">
-                <div class="flex-grow flex items-center px-4">
-                    <i class="fas fa-search text-slate-500 mr-3"></i>
+        <div id="favoritesSection" class="max-w-2xl mx-auto mb-8 hidden">
+            <p class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400 mb-4 ml-2">Mes Favoris</p>
+            <div id="favoritesList" class="flex flex-wrap gap-3"></div>
+        </div>
+
+        <div id="searchSection" class="max-w-2xl mx-auto mb-20">
+            <form id="weatherForm" class="group relative flex items-center p-2 bg-slate-900/60 rounded-[32px] border border-white/10 hover:border-indigo-500/50 transition-all duration-500 shadow-2xl backdrop-blur-xl">
+                <div class="flex-grow flex items-center px-6">
+                    <i class="fas fa-search text-indigo-400 mr-4"></i>
                     <input id="cityInput" type="text" placeholder="Entrez une ville..." 
-                           class="w-full bg-transparent border-none focus:ring-0 py-4 outline-none text-white text-xl placeholder:text-slate-600">
+                           class="w-full bg-transparent border-none focus:ring-0 py-5 outline-none text-white text-xl placeholder:text-slate-600">
                 </div>
                 <button type="submit" id="searchBtn" 
-                        class="bg-indigo-600 text-white px-8 py-4 rounded-xl hover:bg-indigo-500 font-black transition-all active:scale-95 md:w-auto w-full whitespace-nowrap shadow-lg shadow-indigo-500/20">
-                    COMPARER
+                        class="bg-indigo-600 text-white px-10 py-5 rounded-[24px] font-black transition-all active:scale-95 hover:bg-indigo-500 shadow-xl">
+                    ANALYSER
                 </button>
             </form>
         </div>
 
         <div id="resultsArea" class="hidden">
-            <h2 id="displayCity" class="text-3xl font-bold text-white text-center mb-12 flex items-center justify-center gap-3"></h2>
-            <div id="weatherGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div class="flex items-center justify-center gap-6 mb-16">
+                <h2 id="displayCity" class="text-4xl font-black tracking-tight text-white uppercase italic"></h2>
+                <button id="favBtn" onclick="toggleFavorite()" class="text-2xl text-slate-600 hover:text-yellow-400 transition-all duration-300">
+                    <i class="fas fa-star"></i>
+                </button>
+            </div>
+            <div id="weatherGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
         </div>
 
-        <div id="detailArea" class="hidden max-w-2xl mx-auto">
-            <button onclick="backToGrid()" class="mb-6 text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-2">
-                <i class="fas fa-arrow-left"></i> Retour
+        <div id="detailArea" class="hidden max-w-3xl mx-auto pb-20">
+            <button onclick="backToGrid()" class="mb-8 px-8 py-4 bg-slate-900 border border-white/10 rounded-full text-white hover:bg-indigo-600 transition-all font-bold flex items-center gap-3">
+                <i class="fas fa-arrow-left"></i> RETOUR
             </button>
             <div id="detailContent"></div>
         </div>
+    </div>
+
+    <div id="mobileHomeBtn" class="fixed bottom-8 right-6 z-50 md:hidden translate-y-24 transition-all duration-500">
+        <button onclick="backToHome()" class="bg-indigo-600 text-white w-16 h-16 rounded-full shadow-[0_0_30px_rgba(79,70,229,0.5)] flex items-center justify-center text-2xl active:scale-90 transition-transform">
+            <i class="fas fa-home"></i>
+        </button>
     </div>
 
     <script src="script.js"></script>
