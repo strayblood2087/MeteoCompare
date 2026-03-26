@@ -1,8 +1,8 @@
 const models = [
-    { id: 'icon', name: 'ICON-EU', sub: 'Open Météo', model: 'icon_seamless', color: 'from-amber-400 to-orange-500' },
-    { id: 'gfs', name: 'GFS-Global', sub: 'Standard International', model: 'gfs_seamless', color: 'from-rose-400 to-red-600' },
-    { id: 'arome', name: 'AROME-HD', sub: 'Météo-France AROME', model: 'meteofrance_arome', color: 'from-blue-400 to-indigo-600' },
-    { id: 'arpege', name: 'ARPEGE', sub: 'Météo-France ARPEGE', model: 'meteofrance_arpege', color: 'from-cyan-400 to-blue-500' },
+    { id: 'icon', name: 'ICON-EU', sub: 'Précision Allemande', model: 'icon_seamless', color: 'from-amber-400 to-orange-500' },
+    { id: 'gfs', name: 'GFS-Global', sub: 'Standard Américain', model: 'gfs_seamless', color: 'from-rose-400 to-red-600' },
+    { id: 'arome', name: 'AROME-HD', sub: 'Haute Définition FR', model: 'meteofrance_arome', color: 'from-blue-400 to-indigo-600' },
+    { id: 'arpege', name: 'ARPEGE', sub: 'Météo-France Global', model: 'meteofrance_arpege', color: 'from-cyan-400 to-blue-500' },
     { id: 'ecmwf', name: 'ECMWF-IFS', sub: 'Référence Européenne', model: 'ecmwf_ifs04', color: 'from-emerald-400 to-teal-600' },
     { id: 'gem', name: 'GEM-Global', sub: 'Modèle Canadien', model: 'gem_seamless', color: 'from-purple-400 to-fuchsia-600' }
 ];
@@ -44,10 +44,14 @@ function renderFavorites() {
 }
 
 function toggleFavorite() {
-    const cityName = document.getElementById('displayCity').innerText.replace('', '').trim();
+    const cityName = document.getElementById('displayCity').innerText.trim();
     const btn = document.getElementById('favBtn');
-    if (favorites.includes(cityName)) {
-        favorites = favorites.filter(f => f !== cityName);
+    
+    // Comparaison souple
+    const index = favorites.findIndex(f => f.toLowerCase() === cityName.toLowerCase());
+    
+    if (index !== -1) {
+        favorites.splice(index, 1);
         btn.classList.remove('is-fav');
     } else {
         favorites.push(cityName);
@@ -58,10 +62,11 @@ function toggleFavorite() {
 }
 
 function removeFavorite(city) {
-    favorites = favorites.filter(f => f !== city);
+    favorites = favorites.filter(f => f.toLowerCase() !== city.toLowerCase());
     localStorage.setItem('meteoFavs', JSON.stringify(favorites));
     renderFavorites();
-    if (document.getElementById('displayCity').innerText.trim() === city) {
+    // Mise à jour de l'étoile si c'est la ville affichée
+    if (document.getElementById('displayCity').innerText.trim().toLowerCase() === city.toLowerCase()) {
         document.getElementById('favBtn').classList.remove('is-fav');
     }
 }
@@ -92,19 +97,21 @@ async function getAllWeather() {
     try {
         const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr&format=json`);
         const geoData = await geoRes.json();
-        if (!geoData.results) throw new Error("Oups, ville inconnue...");
+        if (!geoData.results) throw new Error("Ville introuvable...");
         
         const { latitude, longitude, name } = geoData.results[0];
         currentCoords = { lat: latitude, lon: longitude };
         
-        document.getElementById('displayCity').innerText = name;
+        const displayCityEl = document.getElementById('displayCity');
+        displayCityEl.innerText = name;
         document.getElementById('resultsArea').classList.remove('hidden');
         document.getElementById('detailArea').classList.add('hidden');
         document.getElementById('mobileHomeBtn').classList.remove('visible');
         
-        // Check if city is already a favorite
+        // --- CORRECTION : Mise à jour de l'étoile ici ---
         const favBtn = document.getElementById('favBtn');
-        favorites.includes(name) ? favBtn.classList.add('is-fav') : favBtn.classList.remove('is-fav');
+        const isFav = favorites.some(f => f.toLowerCase() === name.toLowerCase());
+        isFav ? favBtn.classList.add('is-fav') : favBtn.classList.remove('is-fav');
 
         const grid = document.getElementById('weatherGrid');
         grid.innerHTML = ''; 

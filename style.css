@@ -18,14 +18,12 @@
 .card-pro { transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1); cursor: pointer; }
 .card-pro:hover { background: rgba(30, 41, 59, 0.9); border-color: rgba(99, 102, 241, 0.4); transform: translateY(-8px); }
 
-/* Étoile Favori */
 #favBtn.is-fav {
     color: #fbbf24;
     filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
     transform: scale(1.2);
 }
 
-/* Badges Favoris Accueil */
 .fav-badge {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -39,11 +37,7 @@
     align-items: center;
     gap: 10px;
 }
-.fav-badge:hover {
-    background: rgba(99, 102, 241, 0.2);
-    border-color: rgba(99, 102, 241, 0.5);
-    transform: translateY(-2px);
-}
+.fav-badge:hover { background: rgba(99, 102, 241, 0.2); border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
 
 #mobileHomeBtn.visible { translate: 0px 0px; }
 
