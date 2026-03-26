@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>METEO COMPARE by strayblood</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>METEO COMPARE | by strayblood</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -13,55 +13,52 @@
     <div class="fixed top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-600/10 blur-[120px] rounded-full animate-blob"></div>
     <div class="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-600/10 blur-[120px] rounded-full animate-blob animation-delay-2000"></div>
 
-    <div class="relative z-10 container mx-auto px-4 py-12">
-        <header class="text-center mb-12">
+    <div class="relative z-10 container mx-auto px-4 py-8 md:py-12">
+        <header class="text-center mb-8 md:mb-12">
             <a href="#" onclick="backToHome(); return false;" class="inline-block group">
-                <h1 class="text-5xl md:text-7xl font-black mb-4 tracking-tighter uppercase italic transition-transform group-hover:scale-105">
+                <h1 class="text-4xl md:text-7xl font-black mb-2 tracking-tighter uppercase italic transition-transform active:scale-95">
                     <span class="text-white">METEO</span><span class="text-indigo-500">COMPARE</span>
                 </h1>
-                <div class="h-1 w-24 bg-indigo-500 mx-auto rounded-full mb-6 group-hover:w-32 transition-all"></div>
+                <div class="h-1.5 w-16 bg-indigo-500 mx-auto rounded-full"></div>
             </a>
         </header>
 
         <div id="favoritesSection" class="max-w-2xl mx-auto mb-8 hidden">
-            <p class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400 mb-4 ml-2">Mes Favoris</p>
-            <div id="favoritesList" class="flex flex-wrap gap-3"></div>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-3 ml-2">Mes Favoris</p>
+            <div id="favoritesList" class="flex flex-wrap gap-2"></div>
         </div>
 
-        <div id="searchSection" class="max-w-2xl mx-auto mb-20">
-            <form id="weatherForm" class="group relative flex items-center p-2 bg-slate-900/60 rounded-[32px] border border-white/10 hover:border-indigo-500/50 transition-all duration-500 shadow-2xl backdrop-blur-xl">
-                <div class="flex-grow flex items-center px-6">
-                    <i class="fas fa-search text-indigo-400 mr-4"></i>
-                    <input id="cityInput" type="text" placeholder="Entrez une ville..." 
-                           class="w-full bg-transparent border-none focus:ring-0 py-5 outline-none text-white text-xl placeholder:text-slate-600">
-                </div>
+        <div id="searchSection" class="max-w-2xl mx-auto mb-12 md:mb-20">
+            <form id="weatherForm" class="relative flex items-center p-1.5 bg-slate-900/60 rounded-[28px] border border-white/10 focus-within:border-indigo-500/50 transition-all shadow-2xl backdrop-blur-xl">
+                <input id="cityInput" type="text" placeholder="Rechercher une ville..." 
+                       class="flex-grow bg-transparent border-none focus:ring-0 px-6 py-4 outline-none text-white text-lg placeholder:text-slate-600">
                 <button type="submit" id="searchBtn" 
-                        class="bg-indigo-600 text-white px-10 py-5 rounded-[24px] font-black transition-all active:scale-95 hover:bg-indigo-500 shadow-xl">
+                        class="bg-indigo-600 text-white px-6 md:px-10 py-4 rounded-[22px] font-black transition-all active:scale-90 hover:bg-indigo-500 shadow-xl text-sm md:text-base">
                     ANALYSER
                 </button>
             </form>
         </div>
 
         <div id="resultsArea" class="hidden">
-            <div class="flex items-center justify-center gap-6 mb-16">
-                <h2 id="displayCity" class="text-4xl font-black tracking-tight text-white uppercase italic text-center"></h2>
-                <button id="favBtn" onclick="toggleFavorite()" class="text-2xl text-slate-600 hover:text-yellow-400 transition-all duration-300">
+            <div class="flex items-center justify-center gap-4 mb-10">
+                <h2 id="displayCity" class="text-3xl md:text-5xl font-black tracking-tight text-white uppercase italic"></h2>
+                <button id="favBtn" onclick="toggleFavorite()" class="text-2xl text-slate-700 hover:text-yellow-400 transition-all">
                     <i class="fas fa-star"></i>
                 </button>
             </div>
-            <div id="weatherGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+            <div id="weatherGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"></div>
         </div>
 
         <div id="detailArea" class="hidden max-w-3xl mx-auto pb-20">
-            <button onclick="backToGrid()" class="mb-8 px-8 py-4 bg-slate-900 border border-white/10 rounded-full text-white hover:bg-indigo-600 transition-all font-bold flex items-center gap-3">
+            <button onclick="backToGrid()" class="mb-8 px-6 py-3 bg-slate-900 border border-white/10 rounded-full text-white font-bold flex items-center gap-2 text-sm">
                 <i class="fas fa-arrow-left"></i> RETOUR
             </button>
             <div id="detailContent"></div>
         </div>
     </div>
 
-    <div id="mobileHomeBtn" class="fixed bottom-8 right-6 z-50 md:hidden translate-y-24 transition-all duration-500">
-        <button onclick="backToHome()" class="bg-indigo-600 text-white w-16 h-16 rounded-full shadow-[0_0_30px_rgba(79,70,229,0.5)] flex items-center justify-center text-2xl active:scale-90 transition-transform">
+    <div id="mobileHomeBtn" class="fixed bottom-6 right-6 z-50 md:hidden translate-y-32 transition-all duration-500">
+        <button onclick="backToHome()" class="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-xl active:scale-75 transition-transform">
             <i class="fas fa-home"></i>
         </button>
     </div>

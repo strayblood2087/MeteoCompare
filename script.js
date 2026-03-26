@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', renderFavorites);
 document.getElementById('weatherForm').addEventListener('submit', e => { 
     e.preventDefault(); 
     getAllWeather(); 
-    document.getElementById('cityInput').blur(); // Ferme le clavier mobile
+    document.getElementById('cityInput').blur(); 
 });
 
 function getIcon(code) {
@@ -33,15 +33,16 @@ function getRainValue(h, i, mName) {
     return 0;
 }
 
+// --- FAVORIS ---
 function renderFavorites() {
     const container = document.getElementById('favoritesSection');
     const list = document.getElementById('favoritesList');
     if (favorites.length === 0) { container.classList.add('hidden'); return; }
     container.classList.remove('hidden');
+    
     list.innerHTML = favorites.map(city => `
         <div class="fav-badge text-white" onclick="searchFavorite('${city}')">
             <span>${city}</span>
-            <i class="fas fa-times ml-2 text-slate-500" onclick="event.stopPropagation(); removeFavorite('${city}')"></i>
         </div>
     `).join('');
 }
@@ -60,28 +61,12 @@ function toggleFavorite() {
     renderFavorites();
 }
 
-function removeFavorite(city) {
-    favorites = favorites.filter(f => f.toLowerCase() !== city.toLowerCase());
-    localStorage.setItem('meteoFavs', JSON.stringify(favorites));
-    renderFavorites();
-    if (document.getElementById('displayCity').innerText.trim().toLowerCase() === city.toLowerCase()) {
-        document.getElementById('favBtn').classList.remove('is-fav');
-    }
-}
-
 function searchFavorite(city) {
     document.getElementById('cityInput').value = city;
     getAllWeather();
 }
 
-window.backToHome = function() {
-    document.getElementById('resultsArea').classList.add('hidden');
-    document.getElementById('detailArea').classList.add('hidden');
-    document.getElementById('searchSection').classList.remove('hidden');
-    document.getElementById('mobileHomeBtn').classList.remove('visible');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
+// --- LOGIQUE PRINCIPALE ---
 async function getAllWeather() {
     const city = document.getElementById('cityInput').value.trim();
     if (!city) return;
@@ -99,30 +84,26 @@ async function getAllWeather() {
         document.getElementById('displayCity').innerText = name;
         document.getElementById('resultsArea').classList.remove('hidden');
         document.getElementById('detailArea').classList.add('hidden');
+        document.getElementById('searchSection').classList.add('hidden'); // Optionnel: cache la recherche quand on a les résultats
         
         const isFav = favorites.some(f => f.toLowerCase() === name.toLowerCase());
         document.getElementById('favBtn').classList.toggle('is-fav', isFav);
 
         const grid = document.getElementById('weatherGrid');
-        grid.innerHTML = models.map(m => `
-            <div class="glass p-6 card-pro" onclick="showDetails('${m.id}')">
-                <div class="flex justify-between items-start mb-4">
+        grid.innerHTML = models.map((m, i) => `
+            <div class="glass p-6 card-pro reveal-card" style="animation-delay: ${i * 0.1}s" onclick="showDetails('${m.id}')">
+                <div class="flex justify-between items-start mb-6">
                     <div>
-                        <p class="text-[10px] font-bold uppercase text-indigo-400">${m.name}</p>
-                        <h3 class="font-bold text-white">${m.sub}</h3>
+                        <p class="text-[10px] font-black uppercase text-indigo-400 tracking-wider mb-1">${m.name}</p>
+                        <h3 class="font-bold text-white text-sm">${m.sub}</h3>
                     </div>
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br ${m.color} flex items-center justify-center shadow-lg">
-                        <i class="fas fa-plus text-[10px] text-white"></i>
-                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br ${m.color} flex items-center justify-center shadow-lg"><i class="fas fa-plus text-[10px] text-white"></i></div>
                 </div>
-                <div id="data-${m.id}" class="min-h-[100px] flex items-center justify-center">
-                    <i class="fas fa-circle-notch fa-spin text-slate-700"></i>
-                </div>
+                <div id="data-${m.id}" class="min-h-[140px] flex items-center justify-center"><i class="fas fa-circle-notch fa-spin text-slate-800"></i></div>
             </div>
         `).join('');
 
         models.forEach(m => fetchHomeData(m, latitude, longitude));
-
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
 }
 
@@ -133,32 +114,48 @@ async function fetchHomeData(m, lat, lon) {
         const url = `${isMF ? 'https://api.open-meteo.com/v1/meteofrance' : 'https://api.open-meteo.com/v1/forecast'}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weather_code,precipitation_probability,precipitation&${isMF ? 'model' : 'models'}=${m.model}&timezone=auto`;
         const res = await fetch(url);
         const data = await res.json();
+        
         const h = data.hourly;
         const temps = h.temperature_2m || h[`temperature_2m_${m.model}`];
         const codes = h.weather_code || h[`weather_code_${m.model}`];
-        const start = 0; // Simplifié pour perf
+
+        const now = new Date();
+        const currentHour = now.getHours();
+        let startIndex = h.time.findIndex(t => parseInt(t.substring(11, 13)) === currentHour);
+        if (startIndex === -1) startIndex = 0;
+
+        let forecastHTML = '';
+        [0, 2, 4, 6].forEach(offset => {
+            const i = startIndex + offset;
+            if (temps[i] !== undefined) {
+                const hour24 = h.time[i].substring(11, 16);
+                forecastHTML += `
+                    <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+                        <span class="text-[10px] font-black ${offset === 0 ? 'text-indigo-400' : 'text-slate-500'} uppercase">${hour24}</span>
+                        <i class="fas ${getIcon(codes[i])} text-xs"></i>
+                        <span class="text-xs font-black text-white w-8 text-right">${Math.round(temps[i])}°</span>
+                    </div>`;
+            }
+        });
 
         container.innerHTML = `
             <div class="w-full">
                 <div class="flex items-center gap-4 mb-4">
-                    <i class="fas ${getIcon(codes[start])} text-3xl"></i>
-                    <span class="text-4xl font-black">${Math.round(temps[start])}°</span>
+                    <i class="fas ${getIcon(codes[startIndex])} text-4xl"></i>
+                    <span class="text-5xl font-black tracking-tighter">${Math.round(temps[startIndex])}°</span>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-[11px] font-bold text-slate-400">
-                    <div class="flex justify-between border-b border-white/5 pb-1">
-                        <span>+2h</span><span>${Math.round(temps[start+2])}°</span>
-                    </div>
-                    <div class="flex justify-between border-b border-white/5 pb-1">
-                        <span>Pluie</span><span>${Math.round(getRainValue(h, start, m.model))}%</span>
-                    </div>
+                <div class="space-y-0.5 mb-4">${forecastHTML}</div>
+                <div class="pt-3 border-t border-white/10 flex justify-between items-center">
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400">Prob. Pluie</span>
+                    <span class="text-xs font-black text-cyan-400">${Math.round(getRainValue(h, startIndex, m.model))}%</span>
                 </div>
             </div>`;
-    } catch (e) { container.innerHTML = "Erreur"; }
+    } catch (e) { container.innerHTML = "<p class='text-xs text-slate-600'>Erreur</p>"; }
 }
 
 async function showDetails(modelId) {
     const m = models.find(mod => mod.id === modelId);
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     document.getElementById('resultsArea').classList.add('hidden');
     document.getElementById('searchSection').classList.add('hidden');
     document.getElementById('detailArea').classList.remove('hidden');
@@ -183,42 +180,73 @@ async function showDetails(modelId) {
             days[date].push({ time: time.substring(11, 16), temp: t[i], rain: getRainValue(h, i, m.model), code: c[i] });
         });
 
-        content.innerHTML = Object.keys(days).map((date, idx) => {
-            const dayData = days[date];
-            const label = new Date(date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+        content.innerHTML = `
+            <div class="mb-8 text-center reveal-card">
+                <p class="text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px] mb-2">${m.name}</p>
+                <h2 class="text-3xl font-black uppercase italic">${m.sub}</h2>
+            </div>
+        ` + Object.keys(days).map((date, idx) => {
+            const label = new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
             return `
-                <div class="glass mb-4 overflow-hidden">
-                    <div class="p-6 flex justify-between items-center" onclick="toggleDay(${idx})">
-                        <span class="font-black uppercase italic">${label}</span>
+                <div class="glass mb-4 overflow-hidden reveal-card" style="animation-delay: ${idx * 0.1}s">
+                    <div class="p-6 flex justify-between items-center cursor-pointer" onclick="toggleDay(${idx})">
+                        <span class="font-black uppercase italic text-sm">${label}</span>
                         <div class="flex items-center gap-4">
-                            <span class="text-xl font-bold">${Math.round(Math.max(...dayData.map(d=>d.temp)))}°</span>
-                            <i class="fas fa-chevron-down text-indigo-500" id="icon-${idx}"></i>
+                            <span class="text-2xl font-black">${Math.round(Math.max(...days[date].map(d=>d.temp)))}°</span>
+                            <i class="fas fa-chevron-down text-indigo-500 transition-transform duration-300" id="icon-${idx}"></i>
                         </div>
                     </div>
-                    <div id="day-${idx}" class="day-collapse px-6">
-                        ${dayData.filter((_,i)=>i%3===0).map(d => `
-                            <div class="flex justify-between py-3 border-t border-white/5 text-sm">
-                                <span class="text-slate-500">${d.time}</span>
-                                <i class="fas ${getIcon(d.code)}"></i>
-                                <span class="font-bold">${Math.round(d.temp)}°</span>
-                            </div>
-                        `).join('')}
+                    <div id="day-${idx}" class="day-collapse px-4 bg-black/10">
+                        ${days[date].filter((_, i) => i % 2 === 0).map(d => {
+                            const now = new Date();
+                            const isToday = new Date(date).toDateString() === now.toDateString();
+                            const currentHour = now.getHours();
+                            const slotHour = parseInt(d.time.substring(0, 2));
+                            const isLive = isToday && (slotHour === currentHour || (currentHour % 2 !== 0 && slotHour === currentHour - 1));
+
+                            return `
+                                <div class="flex justify-between items-center py-4 px-4 my-1 border-t border-white/5 transition-all ${isLive ? 'live-indicator' : ''}">
+                                    <div class="flex flex-col">
+                                        <span class="text-[11px] font-bold ${isLive ? 'text-indigo-400' : 'text-slate-500'} w-12">${d.time}</span>
+                                        ${isLive ? '<span class="text-[8px] font-black text-indigo-400 animate-pulse-soft">DIRECT</span>' : ''}
+                                    </div>
+                                    <i class="fas ${getIcon(d.code)} text-lg ${isLive ? 'scale-125' : ''}"></i>
+                                    <span class="font-black w-10 text-right ${isLive ? 'text-indigo-400 text-lg' : 'text-base text-white'}">${Math.round(d.temp)}°</span>
+                                    <span class="text-cyan-400 font-bold text-[10px] w-12 text-right">${Math.round(d.rain)}%</span>
+                                </div>`;
+                        }).join('')}
                     </div>
                 </div>`;
         }).join('');
-    } catch (e) { content.innerHTML = "Erreur."; }
+    } catch (e) { content.innerHTML = "<p class='text-center'>Erreur de chargement</p>"; }
 }
 
 window.toggleDay = function(idx) {
     const el = document.getElementById(`day-${idx}`);
+    const icon = document.getElementById(`icon-${idx}`);
     const isOpen = el.classList.contains('open');
     document.querySelectorAll('.day-collapse').forEach(d => d.classList.remove('open'));
-    if (!isOpen) el.classList.add('open');
+    document.querySelectorAll('.fa-chevron-down').forEach(i => i.style.transform = 'rotate(0deg)');
+    if (!isOpen) { el.classList.add('open'); icon.style.transform = 'rotate(180deg)'; }
 };
+
+// --- NAVIGATION MISE À JOUR ---
+window.backToHome = function() {
+    // 1. On vide la zone de recherche
+    document.getElementById('cityInput').value = "";
+    
+    // 2. Gestion de l'affichage
+    document.getElementById('resultsArea').classList.add('hidden');
+    document.getElementById('detailArea').classList.add('hidden');
+    document.getElementById('searchSection').classList.remove('hidden');
+    document.getElementById('mobileHomeBtn').classList.remove('visible');
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 window.backToGrid = function() {
     document.getElementById('detailArea').classList.add('hidden');
     document.getElementById('resultsArea').classList.remove('hidden');
-    document.getElementById('searchSection').classList.remove('hidden');
+    document.getElementById('searchSection').classList.add('hidden');
     document.getElementById('mobileHomeBtn').classList.remove('visible');
 };
