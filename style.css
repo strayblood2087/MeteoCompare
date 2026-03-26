@@ -13,14 +13,14 @@
 }
 
 body {
-    background-color: #030712; /* Le fond de base reste noir profond */
+    background-color: #030712;
     color: white;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* --- ANIMATIONS DE FOND (Blobs colorés comme sur PC) --- */
+/* --- ANIMATIONS DE FOND --- */
 @keyframes blob-float {
     0% { transform: translate3d(0, 0, 0) scale(1); }
     100% { transform: translate3d(20px, -20px, 0) scale(1.05); }
@@ -30,7 +30,7 @@ body {
     animation: blob-float 10s infinite alternate ease-in-out; 
     will-change: transform;
     pointer-events: none;
-    display: block !important; /* Force l'affichage même sur mobile */
+    display: block !important; /* On s'assure qu'ils sont là */
 }
 
 /* --- STYLE GLASSMORPHISM --- */
@@ -40,11 +40,26 @@ body {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-radius: 28px;
+    /* Force l'accélération matérielle */
+    transform: translateZ(0);
 }
 
-/* --- AJUSTEMENTS MOBILE (Uniquement pour le bouton et le texte) --- */
+/* --- OPTIMISATION MOBILE (Le secret de la fluidité) --- */
 @media (max-width: 768px) {
-    /* On empile le formulaire pour que le bouton ne dépasse pas */
+    /* On fige l'animation sur mobile : le rendu reste identique au PC 
+       mais le processeur ne travaille plus pour rien */
+    .animate-blob {
+        animation: none !important;
+        opacity: 0.5; /* On garde les lueurs colorées en fond */
+    }
+
+    /* On réduit très légèrement le flou pour regagner de la réactivité au scroll */
+    .glass { 
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+    }
+
+    /* Ton correctif pour le bouton Analyser */
     #weatherForm {
         flex-direction: column;
         padding: 8px;
@@ -53,24 +68,17 @@ body {
     #searchBtn {
         width: 100%;
         margin-top: 10px;
-        position: static !important; /* On annule l'absolute du PC */
+        position: static !important;
         height: 54px;
         border-radius: 18px !important;
     }
 
-    /* On garde les blobs bien visibles pour éviter le fond noir vide */
-    .animate-blob {
-        opacity: 0.7; 
-    }
-
-    /* On réduit un peu le titre pour que ça tienne sur une ligne */
     h1 { font-size: 2.2rem !important; }
 }
 
-/* --- RESTE DU CODE (Tes styles originaux) --- */
+/* --- RESTE DES STYLES --- */
 .card-pro { transition: all 0.3s ease; cursor: pointer; }
-.card-pro:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.9); }
-
+.card-pro:hover { transform: translateY(-5px); }
 .fav-badge {
     background: rgba(30, 41, 59, 0.6);
     border: 1px solid var(--glass-border);
@@ -81,7 +89,6 @@ body {
     cursor: pointer;
     backdrop-filter: blur(8px);
 }
-
 #favBtn.is-fav { color: #fbbf24; }
 .day-collapse { transition: max-height 0.5s ease, opacity 0.3s; overflow: hidden; max-height: 0; opacity: 0; }
 .day-collapse.open { max-height: 2000px; opacity: 1; }
