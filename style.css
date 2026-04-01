@@ -1,15 +1,18 @@
 :root {
     --indigo-primary: #4f46e5;
     --slate-900: #0f172a;
-    --glass-bg: rgba(15, 23, 42, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(15, 23, 42, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.1);
 }
 
+/* --- OPTIMISATION DE RENDU --- */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
+    /* Optimise le rendu des éléments hors-écran */
+    content-visibility: auto;
 }
 
 body {
@@ -17,21 +20,22 @@ body {
     color: white;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* --- ANIMATIONS DE FOND --- */
+/* --- BLOBS DE FOND (GPU ACCELERATED) --- */
 @keyframes blob-float {
     0% { transform: translate3d(0, 0, 0) scale(1); }
-    100% { transform: translate3d(20px, -20px, 0) scale(1.05); }
+    100% { transform: translate3d(30px, -30px, 0) scale(1.05); }
 }
 
 .animate-blob { 
-    animation: blob-float 10s infinite alternate ease-in-out; 
+    position: fixed;
+    animation: blob-float 12s infinite alternate ease-in-out; 
     will-change: transform;
     pointer-events: none;
-    display: block !important;
-    transform: translateZ(0); /* Hardware Acceleration */
+    z-index: -1;
+    transform: translateZ(0); /* Force le GPU */
 }
 
 /* --- STYLE GLASSMORPHISM --- */
@@ -41,14 +45,31 @@ body {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-radius: 28px;
-    /* Force le rendu par le GPU pour éviter les saccades */
-    transform: translateZ(0);
+    
+    /* Force la mise en cache du calque pour le scroll */
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    will-change: transform, opacity;
+    will-change: transform;
 }
 
-/* --- RESPONSIVE MOBILE OPTIMISÉ --- */
-@media (max-width: 768px) {
+/* --- OPTIMISATION SPÉCIFIQUE MOBILE (Redmi Note / Android) --- */
+@media (max-width: 900px) {
+    /* 1. On réduit le flou pour soulager le processeur graphique sur écran 120Hz */
+    .glass { 
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+        background: rgba(15, 23, 42, 0.9) !important; /* On fonce pour garder le look */
+    }
+    
+    /* 2. On fige les blobs en arrière-plan pendant le scroll */
+    .animate-blob { 
+        animation: none !important; 
+        opacity: 0.4;
+        filter: blur(80px);
+    }
+
+    /* 3. Adaptation du formulaire */
     #weatherForm {
         flex-direction: column;
         padding: 8px;
@@ -62,27 +83,25 @@ body {
         border-radius: 18px !important;
     }
 
-    /* Optimisation Fluidité Mobile */
-    .glass { 
-        backdrop-filter: blur(8px) !important; /* Moins lourd à calculer */
-        -webkit-backdrop-filter: blur(8px) !important;
-        background: rgba(15, 23, 42, 0.85); 
-    }
-    
-    .animate-blob { 
-        animation: none !important; /* Figer les blobs booste les FPS au scroll */
-        opacity: 0.4;
-    }
-
-    h1 { font-size: 2.2rem !important; }
+    h1 { font-size: 2.1rem !important; }
 }
 
-/* --- AUTRES STYLES & ANIMATIONS --- */
-.card-pro { transition: all 0.3s cubic-bezier(0.2, 1, 0.3, 1); cursor: pointer; }
-.card-pro:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.9); }
+/* --- CARTES ET BADGES --- */
+.card-pro { 
+    transition: transform 0.2s cubic-bezier(0.2, 1, 0.3, 1), background 0.2s; 
+    cursor: pointer; 
+}
+
+/* On évite les effets de hover trop lourds sur mobile */
+@media (min-width: 1024px) {
+    .card-pro:hover { 
+        transform: translateY(-6px); 
+        background: rgba(30, 41, 59, 0.8);
+    }
+}
 
 .fav-badge {
-    background: rgba(30, 41, 59, 0.6);
+    background: rgba(30, 41, 59, 0.7);
     border: 1px solid var(--glass-border);
     padding: 10px 20px;
     border-radius: 100px;
@@ -90,15 +109,43 @@ body {
     font-weight: 800;
     cursor: pointer;
     backdrop-filter: blur(8px);
+    transform: translateZ(0);
 }
 
-@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.animate-spin-slow { animation: spin-slow 10s linear infinite; }
-
-@keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-.animate-pulse { animation: pulse-red 1s infinite; }
-
 #favBtn.is-fav { color: #fbbf24; }
-.day-collapse { transition: max-height 0.5s ease, opacity 0.3s; overflow: hidden; max-height: 0; opacity: 0; }
-.day-collapse.open { max-height: 2000px; opacity: 1; }
-.live-indicator { border-left: 4px solid var(--indigo-primary); background: linear-gradient(90deg, rgba(79, 70, 229, 0.1) 0%, transparent 100%); }
+
+/* --- ACCORDÉONS DÉTAILS --- */
+.day-collapse { 
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; 
+    overflow: hidden; 
+    max-height: 0; 
+    opacity: 0; 
+}
+
+.day-collapse.open { 
+    max-height: 1500px; 
+    opacity: 1; 
+}
+
+.live-indicator { 
+    border-left: 4px solid var(--indigo-primary); 
+    background: linear-gradient(90deg, rgba(79, 70, 229, 0.15) 0%, transparent 100%); 
+}
+
+/* --- ANIMATIONS ADDITIONNELLES --- */
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+    animation: spin-slow 10s linear infinite;
+}
+
+.reveal-card {
+    animation: reveal 0.5s ease-out forwards;
+}
+
+@keyframes reveal {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
