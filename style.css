@@ -30,7 +30,8 @@ body {
     animation: blob-float 10s infinite alternate ease-in-out; 
     will-change: transform;
     pointer-events: none;
-    display: block !important; /* On s'assure qu'ils sont là */
+    display: block !important;
+    transform: translateZ(0); /* Hardware Acceleration */
 }
 
 /* --- STYLE GLASSMORPHISM --- */
@@ -40,26 +41,14 @@ body {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-radius: 28px;
-    /* Force l'accélération matérielle */
+    /* Force le rendu par le GPU pour éviter les saccades */
     transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform, opacity;
 }
 
-/* --- OPTIMISATION MOBILE (Le secret de la fluidité) --- */
+/* --- RESPONSIVE MOBILE OPTIMISÉ --- */
 @media (max-width: 768px) {
-    /* On fige l'animation sur mobile : le rendu reste identique au PC 
-       mais le processeur ne travaille plus pour rien */
-    .animate-blob {
-        animation: none !important;
-        opacity: 0.5; /* On garde les lueurs colorées en fond */
-    }
-
-    /* On réduit très légèrement le flou pour regagner de la réactivité au scroll */
-    .glass { 
-        backdrop-filter: blur(10px) !important;
-        -webkit-backdrop-filter: blur(10px) !important;
-    }
-
-    /* Ton correctif pour le bouton Analyser */
     #weatherForm {
         flex-direction: column;
         padding: 8px;
@@ -73,12 +62,25 @@ body {
         border-radius: 18px !important;
     }
 
+    /* Optimisation Fluidité Mobile */
+    .glass { 
+        backdrop-filter: blur(8px) !important; /* Moins lourd à calculer */
+        -webkit-backdrop-filter: blur(8px) !important;
+        background: rgba(15, 23, 42, 0.85); 
+    }
+    
+    .animate-blob { 
+        animation: none !important; /* Figer les blobs booste les FPS au scroll */
+        opacity: 0.4;
+    }
+
     h1 { font-size: 2.2rem !important; }
 }
 
-/* --- RESTE DES STYLES --- */
-.card-pro { transition: all 0.3s ease; cursor: pointer; }
-.card-pro:hover { transform: translateY(-5px); }
+/* --- AUTRES STYLES & ANIMATIONS --- */
+.card-pro { transition: all 0.3s cubic-bezier(0.2, 1, 0.3, 1); cursor: pointer; }
+.card-pro:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.9); }
+
 .fav-badge {
     background: rgba(30, 41, 59, 0.6);
     border: 1px solid var(--glass-border);
@@ -89,6 +91,13 @@ body {
     cursor: pointer;
     backdrop-filter: blur(8px);
 }
+
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.animate-spin-slow { animation: spin-slow 10s linear infinite; }
+
+@keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.animate-pulse { animation: pulse-red 1s infinite; }
+
 #favBtn.is-fav { color: #fbbf24; }
 .day-collapse { transition: max-height 0.5s ease, opacity 0.3s; overflow: hidden; max-height: 0; opacity: 0; }
 .day-collapse.open { max-height: 2000px; opacity: 1; }

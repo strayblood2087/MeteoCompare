@@ -33,18 +33,12 @@ function getRainValue(h, i, mName) {
     return 0;
 }
 
-// --- FAVORIS (SANS LA CROIX) ---
 function renderFavorites() {
     const container = document.getElementById('favoritesSection');
     const list = document.getElementById('favoritesList');
     if (favorites.length === 0) { container.classList.add('hidden'); return; }
     container.classList.remove('hidden');
-    
-    list.innerHTML = favorites.map(city => `
-        <div class="fav-badge text-white" onclick="searchFavorite('${city}')">
-            <span>${city}</span>
-        </div>
-    `).join('');
+    list.innerHTML = favorites.map(city => `<div class="fav-badge text-white" onclick="searchFavorite('${city}')"><span>${city}</span></div>`).join('');
 }
 
 function toggleFavorite() {
@@ -67,13 +61,13 @@ function searchFavorite(city) {
 }
 
 async function getAllWeather() {
-    const city = document.getElementById('cityInput').value.trim();
-    if (!city) return;
+    const cityInput = document.getElementById('cityInput').value.trim();
+    if (!cityInput) return;
     const btn = document.getElementById('searchBtn');
     btn.disabled = true;
     
     try {
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr&format=json`);
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityInput)}&count=1&language=fr&format=json`);
         const geoData = await geoRes.json();
         if (!geoData.results) throw new Error("Ville non trouvée");
         
@@ -83,8 +77,6 @@ async function getAllWeather() {
         document.getElementById('displayCity').innerText = name;
         document.getElementById('resultsArea').classList.remove('hidden');
         document.getElementById('detailArea').classList.add('hidden');
-        
-        // LA BARRE DE RECHERCHE RESTE AFFICHEE ICI (searchSection n'est plus cachée)
         
         const isFav = favorites.some(f => f.toLowerCase() === name.toLowerCase());
         document.getElementById('favBtn').classList.toggle('is-fav', isFav);
@@ -99,22 +91,28 @@ async function getAllWeather() {
                     </div>
                     <div class="w-8 h-8 rounded-lg bg-gradient-to-br ${m.color} flex items-center justify-center shadow-lg"><i class="fas fa-plus text-[10px] text-white"></i></div>
                 </div>
-                <div id="data-${m.id}" class="min-h-[140px] flex items-center justify-center"><i class="fas fa-circle-notch fa-spin text-slate-800"></i></div>
+                <div id="data-${m.id}" class="min-h-[140px] flex items-center justify-center"><i class="fas fa-circle-notch fa-spin text-slate-800 text-xl"></i></div>
             </div>
         `).join('');
 
-        models.forEach(m => fetchHomeData(m, latitude, longitude));
+        // Optimisation Fluidité : affichage progressif des modèles
+        models.forEach((m, index) => {
+            setTimeout(() => {
+                fetchHomeData(m, latitude, longitude);
+            }, index * 60);
+        });
+
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
 }
 
 async function fetchHomeData(m, lat, lon) {
     const container = document.getElementById(`data-${m.id}`);
+
     try {
         const isMF = m.model.includes('meteofrance') || m.model.includes('ecmwf');
         const url = `${isMF ? 'https://api.open-meteo.com/v1/meteofrance' : 'https://api.open-meteo.com/v1/forecast'}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weather_code,precipitation_probability,precipitation&${isMF ? 'model' : 'models'}=${m.model}&timezone=auto`;
         const res = await fetch(url);
         const data = await res.json();
-        
         const h = data.hourly;
         const temps = h.temperature_2m || h[`temperature_2m_${m.model}`];
         const codes = h.weather_code || h[`weather_code_${m.model}`];
@@ -128,10 +126,9 @@ async function fetchHomeData(m, lat, lon) {
         [0, 2, 4, 6].forEach(offset => {
             const i = startIndex + offset;
             if (temps[i] !== undefined) {
-                const hour24 = h.time[i].substring(11, 16);
                 forecastHTML += `
                     <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-                        <span class="text-[10px] font-black ${offset === 0 ? 'text-indigo-400' : 'text-slate-500'} uppercase">${hour24}</span>
+                        <span class="text-[10px] font-black ${offset === 0 ? 'text-indigo-400' : 'text-slate-500'} uppercase">${h.time[i].substring(11, 16)}</span>
                         <i class="fas ${getIcon(codes[i])} text-xs"></i>
                         <span class="text-xs font-black text-white w-8 text-right">${Math.round(temps[i])}°</span>
                     </div>`;
@@ -156,6 +153,7 @@ async function fetchHomeData(m, lat, lon) {
 async function showDetails(modelId) {
     const m = models.find(mod => mod.id === modelId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     document.getElementById('resultsArea').classList.add('hidden');
     document.getElementById('searchSection').classList.add('hidden');
     document.getElementById('detailArea').classList.remove('hidden');
@@ -180,21 +178,14 @@ async function showDetails(modelId) {
             days[date].push({ time: time.substring(11, 16), temp: t[i], rain: getRainValue(h, i, m.model), code: c[i] });
         });
 
-        content.innerHTML = `
-            <div class="mb-8 text-center reveal-card">
-                <p class="text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px] mb-2">${m.name}</p>
-                <h2 class="text-3xl font-black uppercase italic">${m.sub}</h2>
-            </div>
-        ` + Object.keys(days).map((date, idx) => {
+        content.innerHTML = `<div class="mb-8 text-center reveal-card"><p class="text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px] mb-2">${m.name}</p><h2 class="text-3xl font-black uppercase italic">${m.sub}</h2></div>` + 
+        Object.keys(days).map((date, idx) => {
             const label = new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
             return `
                 <div class="glass mb-4 overflow-hidden reveal-card" style="animation-delay: ${idx * 0.1}s">
                     <div class="p-6 flex justify-between items-center cursor-pointer" onclick="toggleDay(${idx})">
                         <span class="font-black uppercase italic text-sm">${label}</span>
-                        <div class="flex items-center gap-4">
-                            <span class="text-2xl font-black">${Math.round(Math.max(...days[date].map(d=>d.temp)))}°</span>
-                            <i class="fas fa-chevron-down text-indigo-500 transition-transform duration-300" id="icon-${idx}"></i>
-                        </div>
+                        <div class="flex items-center gap-4"><span class="text-2xl font-black">${Math.round(Math.max(...days[date].map(d=>d.temp)))}°</span><i class="fas fa-chevron-down text-indigo-500 transition-transform duration-300" id="icon-${idx}"></i></div>
                     </div>
                     <div id="day-${idx}" class="day-collapse px-4 bg-black/10">
                         ${days[date].filter((_, i) => i % 2 === 0).map(d => {
@@ -206,12 +197,9 @@ async function showDetails(modelId) {
 
                             return `
                                 <div class="flex justify-between items-center py-4 px-4 my-1 border-t border-white/5 transition-all ${isLive ? 'live-indicator' : ''}">
-                                    <div class="flex flex-col">
-                                        <span class="text-[11px] font-bold ${isLive ? 'text-indigo-400' : 'text-slate-500'} w-12">${d.time}</span>
-                                        ${isLive ? '<span class="text-[8px] font-black text-indigo-400 animate-pulse-soft">DIRECT</span>' : ''}
-                                    </div>
-                                    <i class="fas ${getIcon(d.code)} text-lg ${isLive ? 'scale-125' : ''}"></i>
-                                    <span class="font-black w-10 text-right ${isLive ? 'text-indigo-400 text-lg' : 'text-base text-white'}">${Math.round(d.temp)}°</span>
+                                    <div class="flex flex-col"><span class="text-[11px] font-bold ${isLive ? 'text-indigo-400' : 'text-slate-500'} w-12">${d.time}</span></div>
+                                    <i class="fas ${getIcon(d.code)} text-lg"></i>
+                                    <span class="font-black w-10 text-right">${Math.round(d.temp)}°</span>
                                     <span class="text-cyan-400 font-bold text-[10px] w-12 text-right">${Math.round(d.rain)}%</span>
                                 </div>`;
                         }).join('')}
@@ -231,7 +219,7 @@ window.toggleDay = function(idx) {
 };
 
 window.backToHome = function() {
-    document.getElementById('cityInput').value = ""; // RESET INPUT
+    document.getElementById('cityInput').value = "";
     document.getElementById('resultsArea').classList.add('hidden');
     document.getElementById('detailArea').classList.add('hidden');
     document.getElementById('searchSection').classList.remove('hidden');
@@ -242,6 +230,6 @@ window.backToHome = function() {
 window.backToGrid = function() {
     document.getElementById('detailArea').classList.add('hidden');
     document.getElementById('resultsArea').classList.remove('hidden');
-    document.getElementById('searchSection').classList.remove('hidden'); // BARRE DE RECHERCHE VISIBLE
+    document.getElementById('searchSection').classList.remove('hidden');
     document.getElementById('mobileHomeBtn').classList.remove('visible');
 };
