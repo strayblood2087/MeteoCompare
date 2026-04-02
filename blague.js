@@ -118,12 +118,12 @@ async function fetchHomeData(m, lat, lon) {
                 <div class="w-full">
                     <div class="flex items-center gap-4 mb-4">
                         <i class="fas fa-snowflake text-4xl text-blue-200 animate-spin-slow"></i>
-                        <span class="text-5xl font-black tracking-tighter">-14°</span>
+                        <span class="text-5xl font-black tracking-tighter">-4°</span>
                     </div>
                     <div class="space-y-0.5 mb-4">
                         <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
                             <span class="text-[10px] font-black text-indigo-400 uppercase">RESSENTI</span>
-                            <span class="text-xs font-black text-white w-8 text-right">-26°</span>
+                            <span class="text-xs font-black text-white w-8 text-right">-7°</span>
                         </div>
                     </div>
                     <div class="pt-3 border-t border-white/10 flex justify-between items-center">
