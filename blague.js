@@ -10,6 +10,9 @@ const models = [
 let favorites = JSON.parse(localStorage.getItem('meteoFavs')) || [];
 let currentCoords = { lat: 0, lon: 0 };
 
+// --- UTILS ---
+const cleanName = (str) => str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 document.addEventListener('DOMContentLoaded', renderFavorites);
 document.getElementById('weatherForm').addEventListener('submit', e => { 
     e.preventDefault(); 
@@ -33,17 +36,13 @@ function getRainValue(h, i, mName) {
     return 0;
 }
 
+// --- FAVORIS ---
 function renderFavorites() {
     const container = document.getElementById('favoritesSection');
     const list = document.getElementById('favoritesList');
     if (favorites.length === 0) { container.classList.add('hidden'); return; }
     container.classList.remove('hidden');
-    
-    list.innerHTML = favorites.map(city => `
-        <div class="fav-badge text-white" onclick="searchFavorite('${city}')">
-            <span>${city}</span>
-        </div>
-    `).join('');
+    list.innerHTML = favorites.map(city => `<div class="fav-badge text-white" onclick="searchFavorite('${city}')"><span>${city}</span></div>`).join('');
 }
 
 function toggleFavorite() {
@@ -65,20 +64,22 @@ function searchFavorite(city) {
     getAllWeather();
 }
 
+// --- LOGIQUE PRINCIPALE ---
 async function getAllWeather() {
-    const city = document.getElementById('cityInput').value.trim();
-    if (!city) return;
+    const cityInput = document.getElementById('cityInput').value.trim();
+    if (!cityInput) return;
     const btn = document.getElementById('searchBtn');
     btn.disabled = true;
     
     try {
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr&format=json`);
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityInput)}&count=1&language=fr&format=json`);
         const geoData = await geoRes.json();
         if (!geoData.results) throw new Error("Ville non trouvée");
         
         const { latitude, longitude, name } = geoData.results[0];
         currentCoords = { lat: latitude, lon: longitude };
         
+        // CORRECTION 1 : On met à jour le titre AVANT toute autre chose
         document.getElementById('displayCity').innerText = name;
         document.getElementById('resultsArea').classList.remove('hidden');
         document.getElementById('detailArea').classList.add('hidden');
@@ -96,43 +97,47 @@ async function getAllWeather() {
                     </div>
                     <div class="w-8 h-8 rounded-lg bg-gradient-to-br ${m.color} flex items-center justify-center shadow-lg"><i class="fas fa-plus text-[10px] text-white"></i></div>
                 </div>
-                <div id="data-${m.id}" class="min-h-[140px] flex items-center justify-center"><i class="fas fa-circle-notch fa-spin text-slate-800"></i></div>
+                <div id="data-${m.id}" class="min-h-[140px] flex items-center justify-center"><i class="fas fa-circle-notch fa-spin text-slate-800 text-xl"></i></div>
             </div>
         `).join('');
 
-        models.forEach(m => fetchHomeData(m, latitude, longitude));
+        // CORRECTION 2 : On lance fetchHomeData qui va maintenant voir le bon nom de ville
+        models.forEach((m, index) => {
+            setTimeout(() => {
+                fetchHomeData(m, latitude, longitude);
+            }, index * 60);
+        });
+
     } catch (e) { alert(e.message); } finally { btn.disabled = false; }
 }
 
 async function fetchHomeData(m, lat, lon) {
     const container = document.getElementById(`data-${m.id}`);
-    const rawName = document.getElementById('displayCity').innerText.trim().toLowerCase();
-    // Sécurité : on enlève les accents (ex: bâtie -> batie)
-    const cityName = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     
-    // --- BLAGUE 1ER AVRIL ---
-    const target = "la batie-montgascon"; 
-    if (cityName.includes(target) || cityName === target) {
-        setTimeout(() => {
-            container.innerHTML = `
-                <div class="w-full">
-                    <div class="flex items-center gap-4 mb-4">
-                        <i class="fas fa-snowflake text-4xl text-blue-200 animate-spin-slow"></i>
-                        <span class="text-5xl font-black tracking-tighter">-4°</span>
+    // CORRECTION 3 : Vérification immédiate de la blague
+    const currentCityInTitle = document.getElementById('displayCity').innerText;
+    const cleaned = cleanName(currentCityInTitle);
+    const target = "la batie-montgascon";
+
+    if (cleaned.includes("batie-montgascon") || cleaned === target) {
+        container.innerHTML = `
+            <div class="w-full">
+                <div class="flex items-center gap-4 mb-4">
+                    <i class="fas fa-snowflake text-4xl text-blue-200 animate-spin-slow"></i>
+                    <span class="text-5xl font-black tracking-tighter">-4°</span>
+                </div>
+                <div class="space-y-0.5 mb-4">
+                    <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+                        <span class="text-[10px] font-black text-indigo-400 uppercase">RESSENTI</span>
+                        <span class="text-xs font-black text-white w-8 text-right">-7°</span>
                     </div>
-                    <div class="space-y-0.5 mb-4">
-                        <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-                            <span class="text-[10px] font-black text-indigo-400 uppercase">RESSENTI</span>
-                            <span class="text-xs font-black text-white w-8 text-right">-7°</span>
-                        </div>
-                    </div>
-                    <div class="pt-3 border-t border-white/10 flex justify-between items-center">
-                        <span class="text-[9px] font-black uppercase tracking-[0.2em] text-red-500 animate-pulse">Blizzard Isérois</span>
-                        <span class="text-xs font-black text-cyan-400">100%</span>
-                    </div>
-                </div>`;
-        }, 400);
-        return;
+                </div>
+                <div class="pt-3 border-t border-white/10 flex justify-between items-center">
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] text-red-500 animate-pulse">Blizzard Isérois</span>
+                    <span class="text-xs font-black text-cyan-400">100%</span>
+                </div>
+            </div>`;
+        return; // BLOQUE L'APPEL API
     }
 
     try {
@@ -154,10 +159,9 @@ async function fetchHomeData(m, lat, lon) {
         [0, 2, 4, 6].forEach(offset => {
             const i = startIndex + offset;
             if (temps[i] !== undefined) {
-                const hour24 = h.time[i].substring(11, 16);
                 forecastHTML += `
                     <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-                        <span class="text-[10px] font-black ${offset === 0 ? 'text-indigo-400' : 'text-slate-500'} uppercase">${hour24}</span>
+                        <span class="text-[10px] font-black ${offset === 0 ? 'text-indigo-400' : 'text-slate-500'} uppercase">${h.time[i].substring(11, 16)}</span>
                         <i class="fas ${getIcon(codes[i])} text-xs"></i>
                         <span class="text-xs font-black text-white w-8 text-right">${Math.round(temps[i])}°</span>
                     </div>`;
@@ -181,8 +185,7 @@ async function fetchHomeData(m, lat, lon) {
 
 async function showDetails(modelId) {
     const m = models.find(mod => mod.id === modelId);
-    const rawName = document.getElementById('displayCity').innerText.trim().toLowerCase();
-    const cityName = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const cleaned = cleanName(document.getElementById('displayCity').innerText);
     const target = "la batie-montgascon";
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -193,7 +196,8 @@ async function showDetails(modelId) {
     
     const content = document.getElementById('detailContent');
 
-    if (cityName.includes(target) || cityName === target) {
+    // CORRECTION 4 : Blague aussi dans la vue détaillée
+    if (cleaned.includes("batie-montgascon") || cleaned === target) {
         content.innerHTML = `
             <div class="mb-8 text-center reveal-card">
                 <p class="text-red-500 font-black uppercase tracking-[0.3em] text-[10px] mb-2">ALERTE VORTEX ISÉROIS</p>
@@ -202,11 +206,7 @@ async function showDetails(modelId) {
             <div class="glass p-10 text-center border-red-500/30">
                 <i class="fas fa-icicles text-7xl text-blue-200 mb-6 animate-bounce"></i>
                 <h3 class="text-2xl font-black mb-4">1m80 DE NEIGE À LA BÂTIE</h3>
-                <p class="text-slate-400 leading-relaxed">
-                    Le modèle <span class="text-white font-bold">${m.name}</span> prévoit une congélation immédiate de la commune. 
-                    Sortie de chez soi uniquement en raquettes ou en motoneige.
-                </p>
-                <div class="mt-8 pt-8 border-t border-white/5 text-5xl">🐟</div>
+                <p class="text-slate-400 leading-relaxed italic">Prévisions ${m.name} : Congélation totale des habitants. Sortie autorisée uniquement en traîneau à chiens. 🐟</p>
             </div>`;
         return;
     }
@@ -229,21 +229,14 @@ async function showDetails(modelId) {
             days[date].push({ time: time.substring(11, 16), temp: t[i], rain: getRainValue(h, i, m.model), code: c[i] });
         });
 
-        content.innerHTML = `
-            <div class="mb-8 text-center reveal-card">
-                <p class="text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px] mb-2">${m.name}</p>
-                <h2 class="text-3xl font-black uppercase italic">${m.sub}</h2>
-            </div>
-        ` + Object.keys(days).map((date, idx) => {
+        content.innerHTML = `<div class="mb-8 text-center reveal-card"><p class="text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px] mb-2">${m.name}</p><h2 class="text-3xl font-black uppercase italic">${m.sub}</h2></div>` + 
+        Object.keys(days).map((date, idx) => {
             const label = new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
             return `
                 <div class="glass mb-4 overflow-hidden reveal-card" style="animation-delay: ${idx * 0.1}s">
                     <div class="p-6 flex justify-between items-center cursor-pointer" onclick="toggleDay(${idx})">
                         <span class="font-black uppercase italic text-sm">${label}</span>
-                        <div class="flex items-center gap-4">
-                            <span class="text-2xl font-black">${Math.round(Math.max(...days[date].map(d=>d.temp)))}°</span>
-                            <i class="fas fa-chevron-down text-indigo-500 transition-transform duration-300" id="icon-${idx}"></i>
-                        </div>
+                        <div class="flex items-center gap-4"><span class="text-2xl font-black">${Math.round(Math.max(...days[date].map(d=>d.temp)))}°</span><i class="fas fa-chevron-down text-indigo-500 transition-transform duration-300" id="icon-${idx}"></i></div>
                     </div>
                     <div id="day-${idx}" class="day-collapse px-4 bg-black/10">
                         ${days[date].filter((_, i) => i % 2 === 0).map(d => {
@@ -255,12 +248,9 @@ async function showDetails(modelId) {
 
                             return `
                                 <div class="flex justify-between items-center py-4 px-4 my-1 border-t border-white/5 transition-all ${isLive ? 'live-indicator' : ''}">
-                                    <div class="flex flex-col">
-                                        <span class="text-[11px] font-bold ${isLive ? 'text-indigo-400' : 'text-slate-500'} w-12">${d.time}</span>
-                                        ${isLive ? '<span class="text-[8px] font-black text-indigo-400 animate-pulse-soft">DIRECT</span>' : ''}
-                                    </div>
-                                    <i class="fas ${getIcon(d.code)} text-lg ${isLive ? 'scale-125' : ''}"></i>
-                                    <span class="font-black w-10 text-right ${isLive ? 'text-indigo-400 text-lg' : 'text-base text-white'}">${Math.round(d.temp)}°</span>
+                                    <div class="flex flex-col"><span class="text-[11px] font-bold ${isLive ? 'text-indigo-400' : 'text-slate-500'} w-12">${d.time}</span></div>
+                                    <i class="fas ${getIcon(d.code)} text-lg"></i>
+                                    <span class="font-black w-10 text-right">${Math.round(d.temp)}°</span>
                                     <span class="text-cyan-400 font-bold text-[10px] w-12 text-right">${Math.round(d.rain)}%</span>
                                 </div>`;
                         }).join('')}
